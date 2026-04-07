@@ -1,0 +1,31 @@
+{
+  "name": "auto-coder",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Autonomous AI-powered IDE — beyond Cursor",
+  "scripts": {
+    "dev:desktop": "turbo run dev --filter=desktop",
+    "dev:web": "turbo run dev --filter=web",
+    "dev:cli": "turbo run dev --filter=cli",
+    "build": "turbo run build",
+    "build:desktop": "turbo run build --filter=desktop",
+    "build:web": "turbo run build --filter=web",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "clean": "turbo run clean",
+    "format": "prettier --write \"**/*.{ts,tsx,json,md}\"",
+    "typecheck": "turbo run typecheck"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0",
+    "typescript": "^5.4.0",
+    "prettier": "^3.2.0",
+    "@types/node": "^20.0.0",
+    "eslint": "^9.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@9.0.0"
+}
