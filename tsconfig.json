@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "jsx": "react-jsx",
+    "baseUrl": ".",
+    "paths": {
+      "@auto-coder/ai-core": ["packages/ai-core/src/index.ts"],
+      "@auto-coder/indexer": ["packages/indexer/src/index.ts"],
+      "@auto-coder/runtime": ["packages/runtime/src/index.ts"],
+      "@auto-coder/multi-agent": ["packages/multi-agent/src/index.ts"],
+      "@auto-coder/ui-kit": ["packages/ui-kit/src/index.ts"]
+    }
+  },
+  "exclude": ["node_modules"]
+}
