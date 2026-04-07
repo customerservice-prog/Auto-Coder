@@ -1,0 +1,50 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+*.tsbuildinfo
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Electron
+apps/desktop/release/
+apps/desktop/dist/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Turbo
+.turbo/
+
+# Testing
+coverage/
+
+# Vector DB
+.lancedb/
+*.lance
+
+# SQLite
+*.sqlite
+*.db
+
+# Temp agent files
+PLAN.md
+.auto-coder-memory/
