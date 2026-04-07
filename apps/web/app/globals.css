@@ -1,0 +1,64 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0d1117;
+  --bg2: #161b22;
+  --bg3: #21262d;
+  --border: #30363d;
+  --text: #e6edf3;
+  --text2: #8b949e;
+  --accent: #58a6ff;
+  --accent2: #3fb950;
+  --purple: #bc8cff;
+  --yellow: #d29922;
+}
+
+html, body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+
+/* NAV */
+.nav { display: flex; align-items: center; justify-content: space-between; padding: 16px 48px; border-bottom: 1px solid var(--border); background: var(--bg2); position: sticky; top: 0; z-index: 100; }
+.nav-brand { display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 700; }
+.nav-logo { font-size: 24px; }
+.nav-name { background: linear-gradient(135deg, var(--accent), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.nav-actions { display: flex; align-items: center; gap: 12px; }
+
+/* HERO */
+.hero { max-width: 1200px; margin: 0 auto; padding: 80px 48px; text-align: center; }
+.hero-badge { display: inline-block; background: var(--bg3); border: 1px solid var(--border); color: var(--accent); padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 500; margin-bottom: 32px; }
+.hero-title { font-size: clamp(48px, 8vw, 80px); font-weight: 800; line-height: 1.1; margin-bottom: 24px; }
+.hero-accent { background: linear-gradient(135deg, var(--accent), var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.hero-subtitle { font-size: 20px; color: var(--text2); max-width: 640px; margin: 0 auto 40px; line-height: 1.6; }
+.hero-actions { display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 80px; flex-wrap: wrap; }
+
+/* FEATURE GRID */
+.feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-bottom: 80px; text-align: left; }
+.feature-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 24px; transition: border-color 0.2s; }
+.feature-card:hover { border-color: var(--accent); }
+.feature-icon { font-size: 32px; display: block; margin-bottom: 12px; }
+.feature-card h3 { font-size: 16px; font-weight: 600; margin-bottom: 8px; }
+.feature-card p { font-size: 14px; color: var(--text2); line-height: 1.5; }
+
+/* PRICING */
+.pricing-section { margin-bottom: 80px; }
+.pricing-section h2 { font-size: 36px; font-weight: 700; margin-bottom: 40px; }
+.pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; max-width: 900px; margin: 0 auto; text-align: left; }
+.pricing-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 28px; }
+.pricing-card.highlighted { border-color: var(--accent); background: #1f6feb15; }
+.pricing-card h3 { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+.price { font-size: 32px; font-weight: 800; color: var(--accent); margin-bottom: 20px; }
+.pricing-card ul { list-style: none; margin-bottom: 24px; }
+.pricing-card li { font-size: 14px; color: var(--text2); padding: 4px 0; }
+
+/* BUTTONS */
+.btn-primary { background: var(--accent); color: white; border: none; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; transition: opacity 0.15s; }
+.btn-primary:hover { opacity: 0.85; }
+.btn-outline { background: transparent; color: var(--text); border: 1px solid var(--border); padding: 10px 20px; border-radius: 8px; font-size: 14px; cursor: pointer; transition: border-color 0.15s; }
+.btn-outline:hover { border-color: var(--accent); }
+.btn-hero-primary { background: linear-gradient(135deg, var(--accent), var(--purple)); color: white; border: none; padding: 16px 32px; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; transition: opacity 0.15s; }
+.btn-hero-primary:hover { opacity: 0.9; }
+.btn-hero-secondary { background: var(--bg3); color: var(--text); border: 1px solid var(--border); padding: 16px 32px; border-radius: 10px; font-size: 16px; font-weight: 500; cursor: pointer; transition: all 0.15s; text-decoration: none; display: inline-block; }
+.btn-hero-secondary:hover { border-color: var(--accent); color: var(--accent); }
+
+/* FOOTER */
+.footer { text-align: center; padding: 40px; border-top: 1px solid var(--border); color: var(--text2); font-size: 14px; }
+.footer a { color: var(--accent); text-decoration: none; }
