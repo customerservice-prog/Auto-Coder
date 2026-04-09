@@ -25,8 +25,7 @@ export async function getMemory(projectPath: string): Promise<string> {
     const recent = entries.slice(-5); // Last 5 sessions
     return recent
       .map(e => `[${e.timestamp}] Mission: ${e.mission} | Changed: ${e.filesChanged.join(', ')}`)
-      .join('
-');
+      .join('\n');
   } catch {
     return 'No previous sessions.';
   }

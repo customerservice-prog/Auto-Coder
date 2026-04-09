@@ -1,9 +1,13 @@
 import { generateText } from 'ai';
 import { anthropic } from '@ai-sdk/anthropic';
-import { runAgent, AgentOptions } from './agent.js';
+import { createOpenAI, openai } from '@ai-sdk/openai';
+import { runAgent } from './agent.js';
 import { execSync } from 'child_process';
 import path from 'path';
-import fs from 'fs/promises';
+
+const deepseekProvider = createOpenAI({
+  baseURL: 'https://api.deepseek.com/v1',
+});
 
 export interface SubTask {
   id: string;
@@ -50,12 +54,18 @@ Return only valid JSON array.`,
 
   let subtasks: SubTask[];
   try {
-    const jsonMatch = planResult.text.match(/[[sS]*]/);
+    const jsonMatch = planResult.text.match(/\[[\s\S]*?\]/);
     subtasks = jsonMatch
       ? JSON.parse(jsonMatch[0]).map((t: any) => ({ ...t, status: 'pending' }))
       : [];
   } catch {
     console.error('[Orchestrator] Failed to parse subtask plan, running as single agent');
+    await runAgent(mission, { projectPath });
+    return;
+  }
+
+  if (!subtasks.length) {
+    console.warn('[Orchestrator] No subtasks in plan, running single agent');
     await runAgent(mission, { projectPath });
     return;
   }
@@ -130,10 +140,12 @@ Return only valid JSON array.`,
  */
 export async function evaluateWithMultipleModels(
   task: string,
-  projectPath: string
+  _projectPath: string
 ): Promise<{ bestModel: string; bestCode: string; scores: Record<string, number> }> {
   const models = [
     { name: 'claude', model: anthropic('claude-sonnet-4-5') },
+    { name: 'gpt4o', model: openai('gpt-4o') },
+    { name: 'deepseek', model: deepseekProvider('deepseek-chat') },
   ];
 
   const results = await Promise.all(
@@ -164,7 +176,11 @@ export async function evaluateWithMultipleModels(
     scores[name] = score;
   }
 
-  const bestName = Object.entries(scores).sort(([, a], [, b]) => b - a)[0][0];
+  const ranked = Object.entries(scores).sort(([, a], [, b]) => b - a);
+  if (!ranked.length) {
+    return { bestModel: 'none', bestCode: '', scores };
+  }
+  const bestName = ranked[0][0];
   const best = results.find((r) => r.name === bestName)!;
 
   return { bestModel: bestName, bestCode: best.code, scores };

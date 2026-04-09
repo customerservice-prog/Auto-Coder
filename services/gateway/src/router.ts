@@ -3,8 +3,12 @@
  * Handles rate limiting, fallback, and cost optimization.
  */
 import { anthropic } from '@ai-sdk/anthropic';
-import { openai } from '@ai-sdk/openai';
-import { generateText, streamText, LanguageModel } from 'ai';
+import { createOpenAI, openai } from '@ai-sdk/openai';
+
+const deepseekProvider = createOpenAI({
+  baseURL: 'https://api.deepseek.com/v1',
+});
+import { generateText, LanguageModel } from 'ai';
 
 export type ModelName = 'claude' | 'gpt4o' | 'deepseek' | 'auto';
 export type TaskType = 'code' | 'plan' | 'review' | 'autocomplete' | 'debug';
@@ -52,11 +56,7 @@ function resolveModel(name: ModelName): LanguageModel {
     case 'gpt4o':
       return openai('gpt-4o');
     case 'deepseek':
-      // DeepSeek uses OpenAI-compatible API
-      return openai('deepseek-chat', {
-        baseURL: 'https://api.deepseek.com/v1',
-        apiKey: process.env.DEEPSEEK_API_KEY,
-      } as any);
+      return deepseekProvider('deepseek-chat');
     default:
       return anthropic('claude-sonnet-4-5');
   }

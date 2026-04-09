@@ -1,10 +1,20 @@
-import React from 'react';
 import type { AgentStatus } from '../App';
+import { desktopAccel } from '../desktopAccel';
+
+export interface StatusFileContext {
+  /** Shown in the bar (often workspace-relative). */
+  display: string;
+  /** Full path for tooltip / copy; omit when untitled. */
+  fullPath: string | null;
+  isUntitled: boolean;
+}
 
 interface StatusBarProps {
   agentStatus: AgentStatus;
   projectPath: string;
   indexedChunks: number;
+  fileContext: StatusFileContext | null;
+  onCopyActivePath: () => void;
   onToggleSidebar: () => void;
   onToggleChat: () => void;
   onToggleTerminal: () => void;
@@ -32,6 +42,8 @@ export function StatusBar({
   agentStatus,
   projectPath,
   indexedChunks,
+  fileContext,
+  onCopyActivePath,
   onToggleSidebar,
   onToggleChat,
   onToggleTerminal,
@@ -41,9 +53,15 @@ export function StatusBar({
     : 'No Project';
 
   return (
-    <div className="status-bar">
+    <div className="status-bar" role="region" aria-label="Status bar">
       <div className="status-left">
-        <button className="status-btn" onClick={onToggleSidebar} title="Toggle Sidebar">
+        <button
+          type="button"
+          className="status-btn"
+          onClick={onToggleSidebar}
+          title={`Toggle sidebar (${desktopAccel('togglePrimarySidebar')})`}
+          aria-label={`Toggle primary sidebar, ${desktopAccel('togglePrimarySidebar')}`}
+        >
           ☰
         </button>
         <span className="status-project">📁 {projectName}</span>
@@ -52,11 +70,33 @@ export function StatusBar({
             ⚡ {indexedChunks} chunks
           </span>
         )}
+        {fileContext && (
+          <button
+            type="button"
+            className="status-file"
+            title={
+              fileContext.isUntitled
+                ? 'Untitled (not on disk)'
+                : `${fileContext.fullPath ?? fileContext.display} — click to copy path`
+            }
+            aria-label={
+              fileContext.isUntitled
+                ? 'Active file is untitled (not on disk)'
+                : `Copy path: ${fileContext.fullPath ?? fileContext.display}`
+            }
+            disabled={fileContext.isUntitled}
+            onClick={() => onCopyActivePath?.()}
+          >
+            📄 <span className="status-file-path">{fileContext.display}</span>
+          </button>
+        )}
       </div>
 
       <div className="status-center">
         <span
           className="status-agent"
+          role="status"
+          aria-live="polite"
           style={{ color: STATUS_COLORS[agentStatus.status] }}
         >
           {STATUS_LABELS[agentStatus.status]}
@@ -67,10 +107,22 @@ export function StatusBar({
       </div>
 
       <div className="status-right">
-        <button className="status-btn" onClick={onToggleTerminal} title="Toggle Terminal">
+        <button
+          type="button"
+          className="status-btn"
+          onClick={onToggleTerminal}
+          title={`Toggle Terminal (${desktopAccel('toggleTerminal')})`}
+          aria-label={`Toggle terminal, ${desktopAccel('toggleTerminal')}`}
+        >
           ⌨️ Terminal
         </button>
-        <button className="status-btn" onClick={onToggleChat} title="Toggle Agent Panel">
+        <button
+          type="button"
+          className="status-btn"
+          onClick={onToggleChat}
+          title={`Toggle Agent panel (${desktopAccel('toggleChat')})`}
+          aria-label={`Toggle agent chat, ${desktopAccel('toggleChat')}`}
+        >
           🤖 Agent
         </button>
         <span className="status-version">Auto-Coder v0.1.0</span>

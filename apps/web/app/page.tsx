@@ -1,5 +1,12 @@
-import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/nextjs';
 import Link from 'next/link';
+import {
+  AccountMenu,
+  SignInControl,
+  SignedInGate,
+  SignedOutGate,
+} from '@/components/clerk-ui';
+import { CheckoutCanceledBanner } from '@/components/checkout-canceled-banner';
+import { StripeSubscribeButton } from '@/components/stripe-subscribe-button';
 
 export default function HomePage() {
   return (
@@ -10,24 +17,31 @@ export default function HomePage() {
           <span className="nav-name">Auto-Coder</span>
         </div>
         <div className="nav-actions">
-          <SignedOut>
-            <SignInButton mode="modal">
-              <button className="btn-outline">Sign In</button>
-            </SignInButton>
+          <SignedOutGate>
+            <SignInControl>
+              <button type="button" className="btn-outline">
+                Sign In
+              </button>
+            </SignInControl>
             <Link href="/dashboard">
-              <button className="btn-primary">Get Started Free</button>
+              <button type="button" className="btn-primary">
+                Get Started Free
+              </button>
             </Link>
-          </SignedOut>
-          <SignedIn>
+          </SignedOutGate>
+          <SignedInGate>
             <Link href="/dashboard">
-              <button className="btn-primary">Open IDE</button>
+              <button type="button" className="btn-primary">
+                Open IDE
+              </button>
             </Link>
-            <UserButton afterSignOutUrl="/" />
-          </SignedIn>
+            <AccountMenu />
+          </SignedInGate>
         </div>
       </nav>
 
       <main className="hero">
+        <CheckoutCanceledBanner />
         <div className="hero-badge">Beyond Cursor. Beyond Copilot.</div>
         <h1 className="hero-title">
           The AI that codes<br />
@@ -39,19 +53,20 @@ export default function HomePage() {
           You just describe what you want.
         </p>
         <div className="hero-actions">
-          <SignedOut>
-            <SignInButton mode="modal">
-              <button className="btn-hero-primary">Start Coding for Free →</button>
-            </SignInButton>
-          </SignedOut>
-          <SignedIn>
+          <SignedOutGate>
+            <SignInControl>
+              <button type="button" className="btn-hero-primary">
+                Start Coding for Free →
+              </button>
+            </SignInControl>
+          </SignedOutGate>
+          <SignedInGate>
             <Link href="/dashboard">
-              <button className="btn-hero-primary">Open Your IDE →</button>
+              <button type="button" className="btn-hero-primary">
+                Open Your IDE →
+              </button>
             </Link>
-          </SignedIn>
-          <a href="https://github.com/customerservice-prog/Auto-Coder" target="_blank" rel="noopener noreferrer">
-            <button className="btn-hero-secondary">⭐ View on GitHub</button>
-          </a>
+          </SignedInGate>
         </div>
 
         <div className="feature-grid">
@@ -61,7 +76,7 @@ export default function HomePage() {
             { icon: '🧬', title: 'Self-Healing Tests', desc: 'Breaks a test? The agent diagnoses and fixes the code — not the test.' },
             { icon: '⚡', title: 'Codebase RAG', desc: 'Indexes your entire repo so the AI always has full context on every call.' },
             { icon: '🏆', title: 'Multi-Model Judge', desc: 'Runs Claude, GPT-4o, and DeepSeek on the same task — picks the winner.' },
-            { icon: '📋', title: 'PLAN.md Protocol', desc: 'Live execution log so you can follow the agent's thinking in real time.' },
+            { icon: '📋', title: 'PLAN.md Protocol', desc: "Live execution log so you can follow the agent's thinking in real time." },
           ].map((f) => (
             <div key={f.title} className="feature-card">
               <span className="feature-icon">{f.icon}</span>
@@ -75,9 +90,36 @@ export default function HomePage() {
           <h2>Simple Pricing</h2>
           <div className="pricing-grid">
             {[
-              { name: 'Free', price: '$0', features: ['100 AI requests/day', 'Single agent mode', 'Monaco editor', 'Basic RAG indexing'] },
-              { name: 'Pro', price: '$20/mo', highlight: true, features: ['Unlimited requests', 'Multi-agent mode', 'All AI models', 'Self-healing tests', 'Performance auditor'] },
-              { name: 'Team', price: '$40/seat/mo', features: ['Everything in Pro', 'Shared memory store', 'CI/CD agent', 'Priority queue', 'Team dashboard'] },
+              {
+                name: 'Free',
+                price: '$0',
+                features: ['100 AI requests/day', 'Single agent mode', 'Monaco editor', 'Basic RAG indexing'],
+              },
+              {
+                name: 'Pro',
+                price: '$20/mo',
+                highlight: true,
+                checkoutPlan: 'pro' as const,
+                features: [
+                  'Unlimited requests',
+                  'Multi-agent mode',
+                  'All AI models',
+                  'Self-healing tests',
+                  'Performance auditor',
+                ],
+              },
+              {
+                name: 'Team',
+                price: '$40/seat/mo',
+                checkoutPlan: 'team' as const,
+                features: [
+                  'Everything in Pro',
+                  'Shared memory store',
+                  'CI/CD agent',
+                  'Priority queue',
+                  'Team dashboard',
+                ],
+              },
             ].map((plan) => (
               <div key={plan.name} className={`pricing-card ${plan.highlight ? 'highlighted' : ''}`}>
                 <h3>{plan.name}</h3>
@@ -85,13 +127,34 @@ export default function HomePage() {
                 <ul>
                   {plan.features.map((f) => <li key={f}>✓ {f}</li>)}
                 </ul>
-                <SignedOut>
-                  <SignInButton mode="modal">
-                    <button className={plan.highlight ? 'btn-primary' : 'btn-outline'}>
-                      Get Started
-                    </button>
-                  </SignInButton>
-                </SignedOut>
+                <div className="pricing-cta">
+                  <SignedOutGate>
+                    <SignInControl>
+                      <button
+                        type="button"
+                        className={plan.highlight ? 'btn-primary' : 'btn-outline'}
+                      >
+                        Get Started
+                      </button>
+                    </SignInControl>
+                  </SignedOutGate>
+                  <SignedInGate>
+                    {'checkoutPlan' in plan && plan.checkoutPlan ? (
+                      <StripeSubscribeButton
+                        plan={plan.checkoutPlan}
+                        className={plan.highlight ? 'btn-primary' : 'btn-outline'}
+                      >
+                        Subscribe with Stripe
+                      </StripeSubscribeButton>
+                    ) : (
+                      <Link href="/dashboard">
+                        <button type="button" className="btn-outline">
+                          Open dashboard
+                        </button>
+                      </Link>
+                    )}
+                  </SignedInGate>
+                </div>
               </div>
             ))}
           </div>
@@ -99,7 +162,11 @@ export default function HomePage() {
       </main>
 
       <footer className="footer">
-        <p>Built with Claude 3.7 Sonnet · Open source on <a href="https://github.com/customerservice-prog/Auto-Coder">GitHub</a></p>
+        <p>
+          <Link href="/privacy">Privacy</Link>
+          {' · '}
+          <Link href="/terms">Terms</Link>
+        </p>
       </footer>
     </div>
   );

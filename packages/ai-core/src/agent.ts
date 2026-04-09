@@ -1,10 +1,14 @@
-import { generateText, streamText, tool, CoreMessage } from 'ai';
+import { generateText, tool, CoreMessage } from 'ai';
 import { anthropic } from '@ai-sdk/anthropic';
-import { openai } from '@ai-sdk/openai';
+import { createOpenAI, openai } from '@ai-sdk/openai';
+
+const deepseekProvider = createOpenAI({
+  baseURL: 'https://api.deepseek.com/v1',
+});
 import { z } from 'zod';
 import fs from 'fs/promises';
 import path from 'path';
-import { execSync, exec } from 'child_process';
+import { exec } from 'child_process';
 import { promisify } from 'util';
 import { v4 as uuidv4 } from 'uuid';
 import { getMemory, saveMemory } from './memory.js';
@@ -67,14 +71,17 @@ export async function runAgent(
 ${memory.slice(0, 500)}
 `;
   await fs.writeFile(planPath, initialPlan);
+  if (!filesChanged.includes('PLAN.md')) filesChanged.push('PLAN.md');
+  onFileChange?.('PLAN.md', initialPlan);
   onStatusChange?.('planning', 'Initializing mission and analyzing codebase...');
 
   // Select AI model
-  const aiModel = model === 'claude'
-    ? anthropic('claude-sonnet-4-5')
-    : model === 'gpt4o'
-    ? openai('gpt-4o')
-    : openai('deepseek-chat', { baseURL: 'https://api.deepseek.com/v1' });
+  const aiModel =
+    model === 'claude'
+      ? anthropic('claude-sonnet-4-5')
+      : model === 'gpt4o'
+        ? openai('gpt-4o')
+        : deepseekProvider('deepseek-chat');
 
   const messages: CoreMessage[] = [];
 
@@ -152,6 +159,8 @@ ${memory}
 **Iterations:** ${iterations}
 **Files Changed:** ${filesChanged.join(', ')}`;
   await fs.writeFile(planPath, updatedPlan);
+  if (!filesChanged.includes('PLAN.md')) filesChanged.push('PLAN.md');
+  onFileChange?.('PLAN.md', updatedPlan);
 
   return {
     success: true,
@@ -213,11 +222,8 @@ function buildTools(
       execute: async ({ directory, recursive }) => {
         try {
           const fullPath = path.join(projectPath, directory);
-          const cmd = recursive
-            ? `find "${fullPath}" -type f -not -path "*/node_modules/*" -not -path "*/.git/*" | head -100`
-            : `ls -la "${fullPath}"`;
-          const { stdout } = await execAsync(cmd);
-          return { success: true, output: stdout };
+          const lines = await listProjectFiles(projectPath, fullPath, recursive, 100);
+          return { success: true, output: lines.join('\n') };
         } catch (err) {
           return { success: false, error: String(err) };
         }
@@ -261,11 +267,8 @@ function buildTools(
       }),
       execute: async ({ query, filePattern }) => {
         try {
-          const pattern = filePattern ? `--include="${filePattern}"` : '';
-          const cmd = `grep -r ${pattern} --include="*.ts" --include="*.tsx" --include="*.js" -l "${query}" "${projectPath}" | grep -v node_modules | grep -v .git | head -20`;
-          const { stdout } = await execAsync(cmd);
-          return { success: true, matches: stdout.split('
-').filter(Boolean) };
+          const matches = await searchFilesInProject(projectPath, query, filePattern);
+          return { success: true, matches };
         } catch {
           return { success: true, matches: [] };
         }
@@ -280,6 +283,8 @@ function buildTools(
       execute: async ({ content }) => {
         try {
           await fs.writeFile(path.join(projectPath, 'PLAN.md'), content);
+          if (!filesChanged.includes('PLAN.md')) filesChanged.push('PLAN.md');
+          onFileChange?.('PLAN.md', content);
           return { success: true };
         } catch (err) {
           return { success: false, error: String(err) };
@@ -321,11 +326,13 @@ function buildTools(
         try {
           const fullPath = path.join(projectPath, filePath);
           const content = await fs.readFile(fullPath, 'utf-8');
-          const lines = content.split('
-');
-          lines.splice(lineNumber, 0, instrumentationCode);
-          await fs.writeFile(fullPath, lines.join('
-'));
+          const lines = content.split('\n');
+          const idx = Math.max(0, Math.min(lines.length, lineNumber));
+          lines.splice(idx, 0, instrumentationCode);
+          const newContent = lines.join('\n');
+          await fs.writeFile(fullPath, newContent);
+          if (!filesChanged.includes(filePath)) filesChanged.push(filePath);
+          onFileChange?.(filePath, newContent);
           return { success: true, message: `Instrumented ${filePath} at line ${lineNumber}` };
         } catch (err) {
           return { success: false, error: String(err) };
@@ -333,4 +340,93 @@ function buildTools(
       },
     }),
   };
+}
+
+const IGNORE_DIR_NAMES = new Set([
+  'node_modules',
+  '.git',
+  'dist',
+  'build',
+  '.next',
+  'coverage',
+  '.turbo',
+  '.cursor',
+  '.auto-coder-memory',
+]);
+
+async function listProjectFiles(
+  projectRoot: string,
+  dir: string,
+  recursive: boolean,
+  maxFiles: number
+): Promise<string[]> {
+  const out: string[] = [];
+  const stack: string[] = [dir];
+  while (stack.length && out.length < maxFiles) {
+    const current = stack.pop()!;
+    let entries;
+    try {
+      entries = await fs.readdir(current, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const e of entries) {
+      if (out.length >= maxFiles) break;
+      const full = path.join(current, e.name);
+      if (e.isDirectory()) {
+        if (IGNORE_DIR_NAMES.has(e.name)) continue;
+        if (recursive) stack.push(full);
+        out.push(path.relative(projectRoot, full) + path.sep);
+      } else {
+        out.push(path.relative(projectRoot, full));
+      }
+    }
+  }
+  return out.sort();
+}
+
+function matchGlob(filename: string, pattern: string | undefined): boolean {
+  if (!pattern) return true;
+  const ext = pattern.startsWith('*.') ? pattern.slice(1) : pattern;
+  if (ext.startsWith('.')) return filename.endsWith(ext);
+  return filename === pattern;
+}
+
+async function searchFilesInProject(
+  projectRoot: string,
+  query: string,
+  filePattern: string | undefined
+): Promise<string[]> {
+  const matches = new Set<string>();
+  const q = query.toLowerCase();
+
+  async function walk(dir: string): Promise<void> {
+    if (matches.size >= 20) return;
+    let entries;
+    try {
+      entries = await fs.readdir(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const e of entries) {
+      if (matches.size >= 20) break;
+      const full = path.join(dir, e.name);
+      if (e.isDirectory()) {
+        if (IGNORE_DIR_NAMES.has(e.name)) continue;
+        await walk(full);
+      } else {
+        if (!matchGlob(e.name, filePattern)) continue;
+        const rel = path.relative(projectRoot, full);
+        try {
+          const text = await fs.readFile(full, 'utf-8');
+          if (text.toLowerCase().includes(q)) matches.add(rel);
+        } catch {
+          /* binary or unreadable */
+        }
+      }
+    }
+  }
+
+  await walk(projectRoot);
+  return [...matches];
 }

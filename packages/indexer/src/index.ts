@@ -1,6 +1,6 @@
 import fs from 'fs/promises';
 import path from 'path';
-import chokidar from 'chokidar';
+import chokidar, { type FSWatcher } from 'chokidar';
 import { createHash } from 'crypto';
 
 export interface CodeChunk {
@@ -22,9 +22,41 @@ export interface IndexOptions {
 }
 
 const SUPPORTED_EXTENSIONS = ['.ts', '.tsx', '.js', '.jsx', '.py', '.go', '.rs', '.css', '.json', '.md'];
-const IGNORE_PATTERNS = ['node_modules', '.git', 'dist', 'build', '.next', 'coverage', '.turbo'];
+const IGNORE_PATTERNS = [
+  'node_modules',
+  '.git',
+  'dist',
+  'build',
+  '.next',
+  'coverage',
+  '.turbo',
+  '.cursor',
+  '.auto-coder-memory',
+];
 
 const indexCache = new Map<string, CodeChunk[]>();
+
+/** Single watcher — closed whenever a new project is indexed so IPC re-entry cannot leak listeners. */
+let indexWatcher: FSWatcher | null = null;
+
+async function closeIndexWatcher(): Promise<void> {
+  if (!indexWatcher) return;
+  await indexWatcher.close();
+  indexWatcher = null;
+}
+
+function normRel(projectRoot: string, absolutePath: string): string {
+  return path.relative(projectRoot, path.resolve(absolutePath)).replace(/\\/g, '/');
+}
+
+function removeChunksForRelPath(relPosix: string) {
+  for (const [key, val] of indexCache.entries()) {
+    const fp = val[0]?.filePath.replace(/\\/g, '/');
+    if (fp === relPosix) {
+      indexCache.delete(key);
+    }
+  }
+}
 
 /**
  * Index the entire codebase using AST-aware chunking.
@@ -33,12 +65,16 @@ const indexCache = new Map<string, CodeChunk[]>();
 export async function indexCodebase(options: IndexOptions): Promise<CodeChunk[]> {
   const { projectPath, onChunkIndexed, onIndexComplete, watchMode = false, embeddingFn } = options;
 
+  await closeIndexWatcher();
+  indexCache.clear();
+
+  const root = path.resolve(projectPath);
   const allChunks: CodeChunk[] = [];
 
-  const files = await getAllFiles(projectPath);
+  const files = await getAllFiles(root);
 
   for (const file of files) {
-    const chunks = await chunkFile(file, projectPath);
+    const chunks = await chunkFile(file, root);
 
     for (const chunk of chunks) {
       if (embeddingFn) {
@@ -52,29 +88,51 @@ export async function indexCodebase(options: IndexOptions): Promise<CodeChunk[]>
 
   onIndexComplete?.(allChunks.length);
 
-  // Watch mode — re-index on file changes
+  // Watch mode — keep index in sync with disk (agent writes, user saves, new files)
   if (watchMode) {
-    chokidar
-      .watch(projectPath, {
-        ignored: IGNORE_PATTERNS.map(p => `**${path.sep}${p}${path.sep}**`),
+    const notify = () => {
+      onIndexComplete?.(indexCache.size);
+    };
+
+    const applyFile = async (absolutePath: string) => {
+      const abs = path.resolve(absolutePath);
+      const rel = normRel(root, abs);
+      removeChunksForRelPath(rel);
+      const chunks = await chunkFile(abs, root);
+      for (const chunk of chunks) {
+        indexCache.set(chunk.id, [chunk]);
+      }
+      notify();
+    };
+
+    const removeFile = (absolutePath: string) => {
+      removeChunksForRelPath(normRel(root, path.resolve(absolutePath)));
+      notify();
+    };
+
+    indexWatcher = chokidar
+      .watch(root, {
+        ignored: IGNORE_PATTERNS.map((p) => `**${path.sep}${p}${path.sep}**`),
         persistent: true,
+        ignoreInitial: true,
       })
-      .on('change', async (filePath) => {
-        const chunks = await chunkFile(filePath, projectPath);
-        // Remove old chunks for this file
-        for (const [key, val] of indexCache.entries()) {
-          if (val[0]?.filePath === path.relative(projectPath, filePath)) {
-            indexCache.delete(key);
-          }
-        }
-        // Add new chunks
-        for (const chunk of chunks) {
-          indexCache.set(chunk.id, [chunk]);
-        }
+      .on('change', (p) => {
+        void applyFile(p);
+      })
+      .on('add', (p) => {
+        void applyFile(p);
+      })
+      .on('unlink', (p) => {
+        removeFile(p);
       });
   }
 
   return allChunks;
+}
+
+/** Stop file watching (e.g. before app quit). Does not clear the in-memory index. */
+export async function stopIndexWatcher(): Promise<void> {
+  await closeIndexWatcher();
 }
 
 /**
@@ -86,7 +144,7 @@ export async function searchCodebase(
   topK: number = 10
 ): Promise<CodeChunk[]> {
   const queryLower = query.toLowerCase();
-  const queryWords = queryLower.split(/s+/);
+  const queryWords = queryLower.split(/\s+/).filter(Boolean);
 
   const scored: Array<{ chunk: CodeChunk; score: number }> = [];
 
@@ -120,9 +178,8 @@ async function chunkFile(filePath: string, projectPath: string): Promise<CodeChu
 
   try {
     const content = await fs.readFile(filePath, 'utf-8');
-    const relativePath = path.relative(projectPath, filePath);
-    const lines = content.split('
-');
+    const relativePath = path.relative(projectPath, filePath).replace(/\\/g, '/');
+    const lines = content.split('\n');
     const chunks: CodeChunk[] = [];
 
     // Simple chunker: split by function/class boundaries
@@ -132,8 +189,7 @@ async function chunkFile(filePath: string, projectPath: string): Promise<CodeChu
 
     while (currentStart < lines.length) {
       const chunkEnd = Math.min(currentStart + chunkSize, lines.length);
-      const chunkContent = lines.slice(currentStart, chunkEnd).join('
-');
+      const chunkContent = lines.slice(currentStart, chunkEnd).join('\n');
 
       if (chunkContent.trim()) {
         const id = createHash('md5')

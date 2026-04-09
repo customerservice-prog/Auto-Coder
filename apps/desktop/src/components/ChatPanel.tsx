@@ -1,11 +1,16 @@
-import React, { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import type { AgentStatus } from '../App';
+import { desktopAccel } from '../desktopAccel';
 
 interface ChatPanelProps {
   onRunAgent: (mission: string) => void;
   agentStatus: AgentStatus;
   projectPath: string;
   indexedChunks: number;
+  missionDraft?: { id: number; text: string } | null;
+  onMissionDraftConsumed?: () => void;
+  /** Escape (when the mission field is enabled) hides the chat panel — same as **Ctrl+L**. */
+  onRequestDismiss?: () => void;
 }
 
 interface Message {
@@ -23,12 +28,21 @@ const QUICK_MISSIONS = [
   'Optimize performance — find and fix any slow operations',
 ];
 
-export function ChatPanel({ onRunAgent, agentStatus, projectPath, indexedChunks }: ChatPanelProps) {
+export function ChatPanel({
+  onRunAgent,
+  agentStatus,
+  projectPath,
+  indexedChunks,
+  missionDraft,
+  onMissionDraftConsumed,
+  onRequestDismiss,
+}: ChatPanelProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
       role: 'system',
-      content: 'Auto-Coder is ready. Describe your mission and the autonomous agent will plan, execute, test, and self-heal until it is done.',
+      content:
+        'Auto-Coder is ready. Open a project folder, then describe your mission—the agent will plan, execute, test, and self-heal until it is done.',
       timestamp: new Date(),
     },
   ]);
@@ -40,6 +54,14 @@ export function ChatPanel({ onRunAgent, agentStatus, projectPath, indexedChunks 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  useEffect(() => {
+    if (!missionDraft) return;
+    setInput(missionDraft.text);
+    onMissionDraftConsumed?.();
+    const raf = requestAnimationFrame(() => textareaRef.current?.focus());
+    return () => cancelAnimationFrame(raf);
+  }, [missionDraft, onMissionDraftConsumed]);
 
   // Show agent status as messages
   useEffect(() => {
@@ -90,6 +112,11 @@ export function ChatPanel({ onRunAgent, agentStatus, projectPath, indexedChunks 
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape' && onRequestDismiss && !isRunning) {
+      e.preventDefault();
+      onRequestDismiss();
+      return;
+    }
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmit();
@@ -97,32 +124,58 @@ export function ChatPanel({ onRunAgent, agentStatus, projectPath, indexedChunks 
   };
 
   return (
-    <div className="chat-panel">
+    <div className="chat-panel" role="complementary" aria-labelledby="chat-panel-heading">
       <div className="chat-header">
         <div className="chat-title">
-          <span className="chat-icon">🤖</span>
-          <span>Auto-Coder Agent</span>
+          <span className="chat-icon" aria-hidden="true">
+            🤖
+          </span>
+          <h2 className="chat-panel-heading" id="chat-panel-heading">
+            Auto-Coder Agent
+          </h2>
         </div>
         <div className="chat-meta">
           {indexedChunks > 0 && (
-            <span className="index-badge" title="Indexed code chunks">
+            <span
+              className="index-badge"
+              title="Indexed code chunks"
+              aria-label={`${indexedChunks} indexed code chunks available for AI context`}
+            >
               {indexedChunks} chunks
             </span>
           )}
-          <div className={`status-indicator ${agentStatus.status}`} />
+          <div className={`status-indicator ${agentStatus.status}`} aria-hidden="true" />
         </div>
       </div>
 
-      <div className="messages">
+      <div
+        className="messages"
+        role="log"
+        aria-live="polite"
+        aria-relevant="additions"
+        aria-label="Agent conversation"
+      >
         {messages.map(msg => (
           <div key={msg.id} className={`message message-${msg.role}`}>
-            {msg.role === 'system' && <span className="msg-icon">ℹ️</span>}
-            {msg.role === 'agent' && <span className="msg-icon">⚙️</span>}
-            {msg.role === 'user' && <span className="msg-icon">👤</span>}
+            {msg.role === 'system' && (
+              <span className="msg-icon" aria-hidden="true">
+                ℹ️
+              </span>
+            )}
+            {msg.role === 'agent' && (
+              <span className="msg-icon" aria-hidden="true">
+                ⚙️
+              </span>
+            )}
+            {msg.role === 'user' && (
+              <span className="msg-icon" aria-hidden="true">
+                👤
+              </span>
+            )}
             <div className="msg-content">
               <p>{msg.content}</p>
               <span className="msg-time">
-                {msg.timestamp.toLocaleTimeString()}
+                <time dateTime={msg.timestamp.toISOString()}>{msg.timestamp.toLocaleTimeString()}</time>
               </span>
             </div>
           </div>
@@ -130,13 +183,16 @@ export function ChatPanel({ onRunAgent, agentStatus, projectPath, indexedChunks 
         <div ref={messagesEndRef} />
       </div>
 
-      {!isRunning && (
-        <div className="quick-missions">
-          <p className="quick-label">Quick missions:</p>
+      {!isRunning && projectPath && (
+        <div className="quick-missions" role="region" aria-labelledby="chat-quick-heading">
+          <h3 className="chat-quick-heading" id="chat-quick-heading">
+            Quick missions
+          </h3>
           <div className="quick-list">
             {QUICK_MISSIONS.map((m, i) => (
               <button
                 key={i}
+                type="button"
                 className="quick-btn"
                 onClick={() => handleSubmit(m)}
               >
@@ -148,8 +204,8 @@ export function ChatPanel({ onRunAgent, agentStatus, projectPath, indexedChunks 
       )}
 
       {isRunning && (
-        <div className="agent-running">
-          <div className="spinner" />
+        <div className="agent-running" role="status" aria-live="polite" aria-atomic="true">
+          <div className="spinner" aria-hidden="true" />
           <span>{agentStatus.message || 'Agent is working...'}</span>
         </div>
       )}
@@ -158,17 +214,27 @@ export function ChatPanel({ onRunAgent, agentStatus, projectPath, indexedChunks 
         <textarea
           ref={textareaRef}
           className="chat-input"
+          autoComplete="off"
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder={isRunning ? 'Agent is working...' : 'Describe your mission... (Enter to send, Shift+Enter for newline)'}
-          disabled={isRunning}
+          aria-label="Agent mission"
+          placeholder={
+            isRunning
+              ? 'Agent is working...'
+              : projectPath
+                ? 'Describe your mission... (Enter to send, Shift+Enter for newline, Esc to hide panel)'
+                : `Open a project folder first (File → Open Folder… or ${desktopAccel('openFolder')})...`
+          }
+          disabled={isRunning || !projectPath}
           rows={3}
         />
         <button
-          className={`send-btn ${isRunning ? 'disabled' : ''}`}
+          type="button"
+          className={`send-btn ${isRunning || !projectPath ? 'disabled' : ''}`}
+          aria-label={isRunning ? 'Agent running' : 'Send mission to agent'}
           onClick={() => handleSubmit()}
-          disabled={isRunning || !input.trim()}
+          disabled={isRunning || !projectPath || !input.trim()}
         >
           {isRunning ? '⏳' : '🚀'}
         </button>
