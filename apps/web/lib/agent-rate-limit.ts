@@ -5,7 +5,7 @@
  */
 
 import { randomUUID } from 'crypto';
-import type { Redis } from '@upstash/redis';
+import { Redis } from '@upstash/redis';
 import { getUpstashRedis } from '@/lib/upstash-redis';
 
 type WindowBucket = { timestamps: number[] };

@@ -13,6 +13,7 @@ import {
   STRIPE_ENTITLEMENT_TIER_KEY,
   normalizeEntitlementTier,
 } from '@/lib/stripe-entitlements';
+import { WebIdeWorkbench } from '@/components/web-ide/WebIdeWorkbench';
 
 type ModelId = 'claude' | 'gpt4o' | 'deepseek';
 
@@ -124,92 +125,118 @@ export default function DashboardPage() {
     }
   }
 
+  const composer = (
+    <>
+      <div className="ide-sidebar-header">
+        <h1 className="ide-sidebar-title">Composer</h1>
+        <p className="ide-sidebar-sub">
+          Same agent as desktop — streams to <strong>Output</strong> below the editor. Model keys from{' '}
+          <code className="ide-code-inline">.env</code>.
+        </p>
+      </div>
+      <div className="ide-form">
+        <label className="ide-field">
+          <span className="ide-field-label">Model</span>
+          <select
+            className="ide-input ide-select"
+            value={model}
+            onChange={(e) => setModel(e.target.value as ModelId)}
+            disabled={loading}
+          >
+            <option value="claude">Claude Sonnet</option>
+            <option value="gpt4o">GPT-4o</option>
+            <option value="deepseek">DeepSeek</option>
+          </select>
+        </label>
+
+        <label className="ide-field">
+          <span className="ide-field-label">Context</span>
+          <textarea
+            className="ide-input ide-textarea ide-textarea-tall"
+            value={projectContext}
+            onChange={(e) => setProjectContext(e.target.value)}
+            placeholder="@workspace — paste paths, errors, snippets…"
+            maxLength={AGENT_PROJECT_CONTEXT_MAX_CHARS}
+            disabled={loading}
+            spellCheck={false}
+          />
+        </label>
+
+        <label className="ide-field">
+          <span className="ide-field-label">Mission</span>
+          <textarea
+            data-composer-mission
+            className="ide-input ide-textarea"
+            value={mission}
+            onChange={(e) => setMission(e.target.value)}
+            placeholder="What should the agent do?"
+            maxLength={AGENT_MISSION_MAX_CHARS}
+            disabled={loading}
+            spellCheck={false}
+          />
+        </label>
+
+        <button
+          type="button"
+          className="ide-submit"
+          disabled={loading || !mission.trim()}
+          onClick={runAssistant}
+        >
+          {loading ? 'Generating…' : 'Submit'}
+        </button>
+        {quotaHint ? <p className="ide-quota">{quotaHint}</p> : null}
+      </div>
+    </>
+  );
+
   return (
-    <div className="dashboard">
+    <div className="dashboard web-dash-root">
       {isClerkEnabled() ? <PostCheckoutClerkRefresh show={checkoutSuccessBanner} /> : null}
-      <nav className="dash-nav">
-        <Link href="/" className="nav-brand-link">
-          <span className="nav-logo">🚀</span>
-          <span className="nav-name">Auto-Coder</span>
-        </Link>
-        <div className="dash-nav-actions">
+      <header className="ide-titlebar wb-chrome">
+        <div className="ide-titlebar-left">
+          <Link href="/" className="ide-brand">
+            <span className="ide-brand-mark" aria-hidden />
+            <span className="ide-brand-text">Auto-Coder</span>
+          </Link>
+          <span className="ide-titlebar-sep" aria-hidden />
+          <span className="ide-product-label">
+            Web IDE
+            {isClerkEnabled() ? <ProPlanBadge /> : null}
+          </span>
+        </div>
+        <div className="ide-titlebar-right">
           {isClerkEnabled() ? (
-            <StripePortalButton className="btn-outline dash-billing-btn">Manage billing</StripePortalButton>
+            <StripePortalButton className="btn-outline ide-toolbar-btn">Billing</StripePortalButton>
           ) : null}
           <AccountMenu />
         </div>
-      </nav>
+      </header>
 
-      <main className="dash-main">
-        {checkoutSuccessBanner ? (
-          <p className="dash-banner dash-banner-success" role="status">
-            Checkout complete — we refreshed your Clerk session; the Pro badge appears once Stripe webhooks sync (usually within seconds).
-          </p>
-        ) : null}
-        <h1 className="dash-title">
-          Web assistant
-          {isClerkEnabled() ? <ProPlanBadge /> : null}
-        </h1>
-        <p className="dash-sub">
-          Paste repo context and describe what you want. The model streams a structured plan and implementation
-          guide. Use the desktop app for full autonomous edits on disk.
+      {!isClerkEnabled() ? (
+        <p className="ide-dev-strip" role="status">
+          Local mode — sign-in off. Add real Clerk keys in <code className="ide-code-inline">.env</code> when you deploy;
+          the API still runs with your model keys.
         </p>
+      ) : null}
 
-        <div className="dash-form">
-          <label className="dash-label">
-            Model
-            <select
-              className="dash-input"
-              value={model}
-              onChange={(e) => setModel(e.target.value as ModelId)}
-              disabled={loading}
-            >
-              <option value="claude">Claude Sonnet</option>
-              <option value="gpt4o">GPT-4o</option>
-              <option value="deepseek">DeepSeek</option>
-            </select>
-          </label>
+      {checkoutSuccessBanner ? (
+        <p className="ide-checkout-banner dash-banner dash-banner-success" role="status">
+          Checkout complete — we refreshed your Clerk session; the Pro badge appears once Stripe webhooks sync (usually
+          within seconds).
+        </p>
+      ) : null}
 
-          <label className="dash-label">
-            Project context (paste key files, errors, stack traces…)
-            <textarea
-              className="dash-textarea dash-textarea-context"
-              value={projectContext}
-              onChange={(e) => setProjectContext(e.target.value)}
-              placeholder="// optional — helps the model understand your codebase"
-              maxLength={AGENT_PROJECT_CONTEXT_MAX_CHARS}
-              disabled={loading}
-            />
-          </label>
-
-          <label className="dash-label">
-            Mission
-            <textarea
-              className="dash-textarea"
-              value={mission}
-              onChange={(e) => setMission(e.target.value)}
-              placeholder="e.g. Add pagination to the users table and fix the flaky test in auth.test.ts"
-              maxLength={AGENT_MISSION_MAX_CHARS}
-              disabled={loading}
-            />
-          </label>
-
-          <button type="button" className="btn-primary dash-submit" disabled={loading || !mission.trim()} onClick={runAssistant}>
-            {loading ? 'Running…' : 'Run assistant'}
-          </button>
-        </div>
-
-        {quotaHint ? <p className="dash-quota-hint">{quotaHint}</p> : null}
-
-        {error ? <div className="dash-error">{error}</div> : null}
-
-        {output ? (
-          <section className="dash-output">
-            <h2>Output</h2>
-            <pre className="dash-pre">{output}</pre>
-          </section>
-        ) : null}
-      </main>
+      <WebIdeWorkbench
+        composer={composer}
+        agentOutput={output}
+        agentError={error}
+        loading={loading}
+        onClearAgentOutput={() => {
+          setOutput('');
+          setError(null);
+          setQuotaHint(null);
+        }}
+      />
     </div>
   );
 }

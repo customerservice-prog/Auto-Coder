@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  transpilePackages: ['@monaco-editor/react', 'monaco-editor'],
   reactStrictMode: true,
   /** Reduces passive fingerprinting; no secret value. */
   poweredByHeader: false,

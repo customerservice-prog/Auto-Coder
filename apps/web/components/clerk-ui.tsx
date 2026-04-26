@@ -46,8 +46,8 @@ export function SignInControl({ children }: { children: ReactNode }) {
 export function AccountMenu() {
   if (!isClerkEnabled()) {
     return (
-      <Link href="/" className="nav-brand-link">
-        ← Home (local dev)
+      <Link href="/" className="nav-brand-link ide-local-home">
+        Home
       </Link>
     );
   }

@@ -37,6 +37,10 @@ export const metadata: Metadata = {
     title: 'Auto-Coder',
     statusBarStyle: 'black-translucent',
   },
+  /** Avoid auto-linkifying strings that look like phone numbers in Safari. */
+  formatDetection: {
+    telephone: false,
+  },
   /** Default crawl policy; `app/robots.ts` still controls `robots.txt` (e.g. `/api/`, `/dashboard`). */
   robots: {
     index: true,
@@ -47,10 +51,6 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   themeColor: '#0d1117',
   colorScheme: 'dark',
-  /** Avoid auto-linkifying strings that look like phone numbers in Safari. */
-  formatDetection: {
-    telephone: false,
-  },
 };
 
 export default function RootLayout({

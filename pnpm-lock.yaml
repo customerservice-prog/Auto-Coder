@@ -133,6 +133,9 @@ importers:
       '@clerk/nextjs':
         specifier: ^5.0.0
         version: 5.7.5(next@15.5.14(@opentelemetry/api@1.9.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@monaco-editor/react':
+        specifier: ^4.6.0
+        version: 4.7.0(monaco-editor@0.50.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@stripe/stripe-js':
         specifier: ^3.0.0
         version: 3.5.0
@@ -142,6 +145,9 @@ importers:
       ai:
         specifier: ^4.0.0
         version: 4.3.19(react@18.3.1)(zod@3.25.76)
+      monaco-editor:
+        specifier: ~0.50.0
+        version: 0.50.0
       next:
         specifier: ^15.0.0
         version: 15.5.14(@opentelemetry/api@1.9.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
