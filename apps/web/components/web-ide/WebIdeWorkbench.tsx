@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -41,6 +42,7 @@ import {
   IconSourceControl,
 } from '@/components/web-ide/activity-icons';
 import { formatModShortcut as accel } from '@/components/web-ide/keyboard-accel';
+import { runWorkbenchLayoutAssertions } from '@/lib/web-dash-ui-spec-assert';
 import { problemRowsFromAgentError } from '@/components/web-ide/agent-error-lines';
 import {
   AGENT_STREAM_PATH,
@@ -132,8 +134,8 @@ function DemoTree(props: {
             <>
               <button
                 type="button"
-                className="wb-tree-row"
-                style={{ paddingLeft: 3 + depth * 4 }}
+                className="wb-tree-row explorer-row"
+                style={{ paddingLeft: 1 + depth * 2 }}
                 onClick={() => toggleDir(node.path)}
               >
                 <span
@@ -164,8 +166,8 @@ function DemoTree(props: {
           ) : (
             <button
               type="button"
-              className={`wb-tree-row wb-tree-file ${activeFile === node.path ? 'wb-tree-active' : ''} ${selectedFile === node.path ? 'wb-tree-selected' : ''}`}
-              style={{ paddingLeft: 3 + depth * 4 }}
+              className={`wb-tree-row explorer-row wb-tree-file ${activeFile === node.path ? 'wb-tree-active explorer-row-active' : ''} ${selectedFile === node.path ? 'wb-tree-selected' : ''}`}
+              style={{ paddingLeft: 1 + depth * 2 }}
               onClick={(e) => {
                 if (e.ctrlKey || e.metaKey) {
                   e.preventDefault();
@@ -229,10 +231,11 @@ export function WebIdeWorkbench({
   const [bottomExpanded, setBottomExpanded] = useState(true);
   const [bottomTab, setBottomTab] = useState<BottomTab>('output');
   const [minimapEnabled, setMinimapEnabled] = useState(true);
-  const [sidebarW, setSidebarW] = useState(216);
-  const [composerW, setComposerW] = useState(272);
-  const [bottomH, setBottomH] = useState(180);
+  const [sidebarW, setSidebarW] = useState(240);
+  const [composerW, setComposerW] = useState(310);
+  const [bottomH, setBottomH] = useState(158);
   const layoutDragRef = useRef<{ kind: 'sb' | 'comp' | 'panel'; start: number; initial: number } | null>(null);
+  const wbAppRef = useRef<HTMLDivElement | null>(null);
   const [cursorLine, setCursorLine] = useState(1);
   const [cursorCol, setCursorCol] = useState(1);
   const prevAgentErrorRef = useRef<string | null>(null);
@@ -284,10 +287,10 @@ export function WebIdeWorkbench({
       if (!d) return;
       if (d.kind === 'sb') {
         const dx = e.clientX - d.start;
-        setSidebarW((w) => Math.min(480, Math.max(156, d.initial + dx)));
+        setSidebarW((w) => Math.min(240, Math.max(156, d.initial + dx)));
       } else if (d.kind === 'comp') {
         const dx = d.start - e.clientX;
-        setComposerW((w) => Math.min(336, Math.max(232, d.initial + dx)));
+        setComposerW((w) => Math.min(320, Math.max(300, d.initial + dx)));
       } else {
         const dy = d.start - e.clientY;
         setBottomH((h) => Math.min(520, Math.max(120, d.initial + dy)));
@@ -351,8 +354,7 @@ export function WebIdeWorkbench({
       return;
     }
     bottomPanelInitedRef.current = true;
-    const h = Math.round(window.innerHeight * 0.27);
-    setBottomH(Math.min(320, Math.max(120, h)));
+    setBottomH(158);
   }, []);
 
   useEffect(() => {
@@ -360,8 +362,12 @@ export function WebIdeWorkbench({
     const p = loadWorkbenchPersisted();
     if (!p) return;
     if (typeof p.sidebarOpen === 'boolean') setSidebarOpen(p.sidebarOpen);
-    if (typeof p.sidebarW === 'number' && p.sidebarW >= 156 && p.sidebarW <= 480) setSidebarW(p.sidebarW);
-    if (typeof p.composerW === 'number' && p.composerW >= 232 && p.composerW <= 336) setComposerW(p.composerW);
+    if (typeof p.sidebarW === 'number') {
+      setSidebarW(Math.min(240, Math.max(156, Math.round(p.sidebarW))));
+    }
+    if (typeof p.composerW === 'number') {
+      setComposerW(Math.min(320, Math.max(300, Math.round(p.composerW))));
+    }
     if (typeof p.bottomH === 'number' && p.bottomH >= 120 && p.bottomH <= 520) setBottomH(p.bottomH);
     if (typeof p.bottomExpanded === 'boolean') setBottomExpanded(p.bottomExpanded);
     if (p.activityView === 'explorer' || p.activityView === 'search' || p.activityView === 'scm') {
@@ -1142,14 +1148,33 @@ export function WebIdeWorkbench({
     void router.push('/sign-in');
   }, [router]);
 
+  useLayoutEffect(() => {
+    const id = requestAnimationFrame(() => {
+      runWorkbenchLayoutAssertions(wbAppRef.current);
+    });
+    return () => cancelAnimationFrame(id);
+  }, [
+    activityView,
+    bottomExpanded,
+    bottomH,
+    composerW,
+    layoutDragging,
+    sidebarOpen,
+    sidebarW,
+    zenMode,
+  ]);
+
   return (
-    <div className={`wb-app${zenMode ? ' wb-app-zen' : ''}${layoutDragging ? ' wb-app-layout-drag' : ''}`}>
+    <div
+      ref={wbAppRef}
+      className={`wb-app${zenMode ? ' wb-app-zen' : ''}${layoutDragging ? ' wb-app-layout-drag' : ''}`}
+    >
       <div className="wb-body">
-        <nav className="wb-activity-bar" role="toolbar" aria-label="Side bar views">
+        <nav className="wb-activity-bar activity-bar" role="toolbar" aria-label="Side bar views">
           <div className="wb-activity-top">
             <button
               type="button"
-              className={`wb-activity-btn ${activityView === 'explorer' ? 'wb-activity-btn-active' : ''}`}
+              className={`wb-activity-btn activity-button ${activityView === 'explorer' ? 'wb-activity-btn-active activity-button-active' : ''}`}
               title={`Explorer (${accel('Ctrl+B')})`}
               aria-pressed={activityView === 'explorer'}
               onClick={() => {
@@ -1163,7 +1188,7 @@ export function WebIdeWorkbench({
             </button>
             <button
               type="button"
-              className={`wb-activity-btn ${activityView === 'search' ? 'wb-activity-btn-active' : ''}`}
+              className={`wb-activity-btn activity-button ${activityView === 'search' ? 'wb-activity-btn-active activity-button-active' : ''}`}
               title={`Search (${accel('Ctrl+Shift+F')})`}
               aria-pressed={activityView === 'search'}
               onClick={() => {
@@ -1177,7 +1202,7 @@ export function WebIdeWorkbench({
             </button>
             <button
               type="button"
-              className={`wb-activity-btn ${activityView === 'scm' ? 'wb-activity-btn-active' : ''}`}
+              className={`wb-activity-btn activity-button ${activityView === 'scm' ? 'wb-activity-btn-active activity-button-active' : ''}`}
               title="Source Control"
               aria-pressed={activityView === 'scm'}
               onClick={() => {
@@ -1189,12 +1214,12 @@ export function WebIdeWorkbench({
                 <IconSourceControl />
               </span>
             </button>
-            <button type="button" className="wb-activity-btn" disabled title="Run and Debug (desktop)" aria-disabled tabIndex={-1}>
+            <button type="button" className="wb-activity-btn activity-button" disabled title="Run and Debug (desktop)" aria-disabled tabIndex={-1}>
               <span className="wb-activity-icon" aria-hidden>
                 <IconRunDebug />
               </span>
             </button>
-            <button type="button" className="wb-activity-btn" disabled title="Extensions (desktop)" aria-disabled tabIndex={-1}>
+            <button type="button" className="wb-activity-btn activity-button" disabled title="Extensions (desktop)" aria-disabled tabIndex={-1}>
               <span className="wb-activity-icon" aria-hidden>
                 <IconExtensions />
               </span>
@@ -1204,7 +1229,7 @@ export function WebIdeWorkbench({
           <div className="wb-activity-bottom">
             <button
               type="button"
-              className="wb-activity-btn wb-activity-account"
+              className="wb-activity-btn activity-button wb-activity-account"
               title={isClerkEnabled() ? 'Account' : 'Account (enable Clerk in .env)'}
               aria-label="Account"
               onClick={goSignIn}
@@ -1215,7 +1240,7 @@ export function WebIdeWorkbench({
             </button>
             <button
               type="button"
-              className="wb-activity-btn"
+              className="wb-activity-btn activity-button"
               title={`Keyboard shortcuts (${accel('Ctrl+Shift+/')})`}
               aria-label="Keyboard shortcuts"
               onClick={() => setShortcutsOpen(true)}
@@ -1240,7 +1265,7 @@ export function WebIdeWorkbench({
           aria-hidden={!sidebarOpen}
         >
           <aside
-            className="wb-sidebar"
+            className={`wb-sidebar${activityView === 'explorer' ? ' explorer' : ''}`}
             style={{ width: sidebarW, minWidth: sidebarW, flexShrink: 0 }}
             role="complementary"
             aria-label={
@@ -1503,29 +1528,29 @@ export function WebIdeWorkbench({
 
             {bottomExpanded ? (
               <div
-                className="wb-bottom"
-                style={{ flex: `0 0 ${bottomH}px`, minHeight: 80, maxHeight: 'min(50vh, 440px)' }}
+                className="wb-bottom bottom-panel"
+                style={{ flex: `0 0 ${bottomH}px`, minHeight: 52, maxHeight: 'min(50vh, 400px)' }}
                 role="region"
                 aria-label="Panel"
               >
-                <div className="wb-bottom-tabs">
+                <div className="wb-bottom-tabs bottom-tabs">
                   <button
                     type="button"
-                    className={`wb-bottom-tab ${bottomTab === 'output' ? 'wb-bottom-tab-active' : ''}`}
+                    className={`wb-bottom-tab bottom-tab ${bottomTab === 'output' ? 'wb-bottom-tab-active bottom-tab-active' : ''}`}
                     onClick={() => setBottomTab('output')}
                   >
                     Output
                   </button>
                   <button
                     type="button"
-                    className={`wb-bottom-tab ${bottomTab === 'terminal' ? 'wb-bottom-tab-active' : ''}`}
+                    className={`wb-bottom-tab bottom-tab ${bottomTab === 'terminal' ? 'wb-bottom-tab-active bottom-tab-active' : ''}`}
                     onClick={() => setBottomTab('terminal')}
                   >
                     Terminal
                   </button>
                   <button
                     type="button"
-                    className={`wb-bottom-tab ${bottomTab === 'problems' ? 'wb-bottom-tab-active' : ''} ${agentError ? 'wb-bottom-tab-warn' : ''}`}
+                    className={`wb-bottom-tab bottom-tab ${bottomTab === 'problems' ? 'wb-bottom-tab-active bottom-tab-active' : ''} ${agentError ? 'wb-bottom-tab-warn' : ''}`}
                     onClick={() => setBottomTab('problems')}
                   >
                     Problems
@@ -1604,12 +1629,12 @@ export function WebIdeWorkbench({
           aria-label="Resize composer"
           onMouseDown={beginComposerResize}
         />
-        <aside className="wb-composer" style={{ width: composerW }} aria-label="Composer">
+        <aside className="wb-composer composer" style={{ width: composerW }} aria-label="Composer">
           {composer}
         </aside>
       </div>
 
-      <footer className="wb-status-bar" role="contentinfo">
+      <footer className="wb-status-bar statusbar" role="contentinfo">
         <div className="wb-status-left">
           <button
             type="button"

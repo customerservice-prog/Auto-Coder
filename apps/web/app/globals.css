@@ -630,48 +630,48 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
 
 /* Web dashboard root + VS Code–style workbench (desktop parity) */
 .web-dash-root .dash-skel {
-  background: #3c3c3c;
+  background: #252526;
 }
 
 .web-dash-root {
-  /* Cursor-like density: dark neutrals + rgba text (workbench overrides below) */
+  --ide-font-ui: 12px;
+  --ide-font-small: 11px;
+  --ide-line-ui: 18px;
+  --ide-row-height: 22px;
+  --ide-border: rgba(255, 255, 255, 0.055);
+  --ide-hover: rgba(255, 255, 255, 0.026);
+  --ide-active: rgba(255, 255, 255, 0.052);
+  --ide-text: rgba(255, 255, 255, 0.8);
+  --ide-text-muted: rgba(255, 255, 255, 0.44);
+  --ide-text-dim: rgba(255, 255, 255, 0.26);
   --wb-editor: #1e1e1e;
-  --wb-chrome: #1a1a1a;
-  --wb-tabs-bar: #1a1a1a;
+  --wb-chrome: #111111;
+  --wb-tabs-bar: #111111;
   --wb-tab-inactive: #181818;
   --wb-side: #181818;
   --wb-side-raised: #1b1b1b;
   --wb-side-deep: #141414;
   --wb-panel: #1c1c1c;
-  --wb-border: rgba(255, 255, 255, 0.045);
+  --wb-border: var(--ide-border);
   --wb-border-strong: rgba(255, 255, 255, 0.055);
-  --wb-tab-active-top: rgba(0, 127, 212, 0.85);
-  --wb-activity-indicator: rgba(255, 255, 255, 0.38);
-  --wb-text-1: rgba(255, 255, 255, 0.82);
-  --wb-text-2: rgba(255, 255, 255, 0.48);
-  --wb-text-3: rgba(255, 255, 255, 0.3);
-  --wb-hover: rgba(255, 255, 255, 0.028);
-  --wb-hover-strong: rgba(255, 255, 255, 0.038);
+  --wb-tab-active-top: rgba(255, 255, 255, 0.45);
+  --wb-activity-indicator: rgba(255, 255, 255, 0.45);
+  --wb-text-1: var(--ide-text);
+  --wb-text-2: var(--ide-text-muted);
+  --wb-text-3: var(--ide-text-dim);
+  --wb-hover: var(--ide-hover);
+  --wb-hover-strong: var(--ide-active);
   --wb-list-active: rgba(255, 255, 255, 0.045);
-  --wb-list-active-tint: rgba(0, 127, 212, 0.09);
-  --wb-status-bg: #141414;
-  --wb-font-ui: 12px;
-  --wb-font-meta: 11px;
-  --wb-font-small: 10px;
-  --wb-leading-ui: 1.38;
-  /* Motion — near-instant feedback */
+  --wb-list-active-tint: var(--ide-active);
+  --wb-status-bg: #151515;
+  --wb-font-ui: var(--ide-font-ui);
+  --wb-font-meta: var(--ide-font-small);
+  --wb-font-small: 11px;
+  --wb-leading-ui: 1.5;
   --wb-ease-out: ease-out;
   --wb-t-hover: 0ms;
   --wb-t-press: 0ms;
   --wb-t-panel: 120ms;
-  --ide-bg: #09090b;
-  --ide-panel: #0c0c0e;
-  --ide-elevated: #141416;
-  --ide-border: #27272a;
-  --ide-muted: #71717a;
-  --ide-fg: #fafafa;
-  --ide-accent: #007fd4;
-  --ide-focus: #007fd4;
   min-height: 100dvh;
   height: 100dvh;
   max-height: 100dvh;
@@ -685,30 +685,35 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
 }
 
+.web-dash-root .wb-app,
+.web-dash-root .wb-app * {
+  --ide-border: rgba(255, 255, 255, 0.055);
+}
+
+.web-dash-root .composer-shell {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
 .web-dash-root .ide-brand-mark {
   box-shadow: none;
 }
 
 .wb-composer {
-  --ide-bg: #09090b;
-  --ide-panel: #0c0c0e;
-  --ide-elevated: #141416;
-  --ide-border: #27272a;
-  --ide-muted: #71717a;
-  --ide-fg: #fafafa;
-  --ide-accent: #007fd4;
-  --ide-focus: #007fd4;
   display: flex;
   flex-direction: column;
   min-height: 0;
-  min-width: 232px;
-  max-width: 640px;
+  min-width: 300px;
+  max-width: 320px;
   flex-shrink: 0;
-  border-left: 1px solid rgba(255, 255, 255, 0.06);
+  border-left: 1px solid var(--ide-border, rgba(255, 255, 255, 0.055));
   overflow: hidden;
-  background: #252526;
-  color: var(--ide-fg);
-  font-size: var(--wb-font-ui, 13px);
+  background: #141414;
+  color: var(--ide-text, rgba(255, 255, 255, 0.82));
+  font-size: var(--ide-font-ui, 12px);
 }
 
 .wb-composer .ide-sidebar-header {
@@ -1945,6 +1950,89 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
   display: none;
 }
 
+/* Dashboard: overlays + chrome must not read as a web product (no blue glow, no card shadow). */
+.web-dash-root .wb-palette-panel,
+.web-dash-root .wb-shortcuts-panel {
+  border-radius: 0;
+  box-shadow: none;
+  border: 1px solid var(--ide-border);
+  background: #1a1a1a;
+}
+
+.web-dash-root .wb-palette-input {
+  padding: 6px 8px;
+  font-size: var(--ide-font-ui);
+}
+
+.web-dash-root .wb-palette-empty {
+  padding: 6px 8px;
+}
+
+.web-dash-root .wb-shortcuts-head {
+  padding: 6px 8px 6px;
+  border-bottom: 1px solid var(--ide-border);
+}
+
+.web-dash-root .wb-shortcuts-title {
+  font-size: var(--ide-font-ui);
+  color: var(--ide-text-muted);
+}
+
+.web-dash-root .wb-shortcuts-close {
+  width: 22px;
+  height: 22px;
+  border-radius: 0 !important;
+  font-size: var(--ide-font-ui);
+}
+
+.web-dash-root .wb-shortcuts-close:hover {
+  background: var(--ide-hover);
+  color: var(--ide-text-muted);
+}
+
+.web-dash-root .wb-shortcuts-lead {
+  padding: 4px 8px 0;
+  font-size: var(--ide-font-small);
+}
+
+.web-dash-root .wb-shortcuts-table {
+  font-size: var(--ide-font-small);
+}
+
+.web-dash-root .wb-shortcuts-table th,
+.web-dash-root .wb-shortcuts-table td {
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--ide-border);
+}
+
+.web-dash-root .wb-ctx-menu {
+  box-shadow: none;
+  border: 1px solid var(--ide-border);
+  background: #161616;
+}
+
+.web-dash-root .wb-resize-v:hover,
+.web-dash-root .wb-resize-v:focus-visible,
+.web-dash-root .wb-resize-h:hover,
+.web-dash-root .wb-resize-h:focus-visible {
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.web-dash-root .wb-zen-exit {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--ide-border);
+  border-radius: 0;
+  box-shadow: none;
+  color: var(--ide-text-muted);
+  font-weight: 500;
+}
+
+.web-dash-root .wb-zen-exit:hover {
+  filter: none;
+  background: var(--ide-hover);
+  color: var(--ide-text);
+}
+
 .wb-shortcuts-panel {
   position: relative;
   z-index: 1;
@@ -2097,10 +2185,16 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
 .web-dash-root .wb-sidebar,
 .web-dash-root .wb-main,
 .web-dash-root .wb-composer,
-.web-dash-root .wb-composer-surface,
-.web-dash-root .wb-composer-chrome,
-.web-dash-root .wb-composer-stack,
-.web-dash-root .wb-composer-sec,
+.web-dash-root .composer,
+.web-dash-root .composer-shell,
+.web-dash-root .composer-top,
+.web-dash-root .composer-stream,
+.web-dash-root .composer-inputbar,
+.web-dash-root .composer-prompt,
+.web-dash-root .composer-inputbar textarea,
+.web-dash-root .composer-inputbar button,
+.web-dash-root .composer-send,
+.web-dash-root .model-chip,
 .web-dash-root .wb-tab-bar,
 .web-dash-root .wb-tab,
 .web-dash-root .wb-bottom,
@@ -2117,25 +2211,23 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
 .web-dash-root .wb-tab-close,
 .web-dash-root .wb-open-editor-row,
 .web-dash-root .wb-tree-row,
-.web-dash-root .wb-composer-submit,
-.web-dash-root .wb-composer-model,
-.web-dash-root .wb-composer-field,
 .web-dash-root .ide-toolbar-btn,
 .web-dash-root .wb-output-error {
-  border-radius: 0;
-  box-shadow: none;
+  border-radius: 0 !important;
+  box-shadow: none !important;
 }
 
-.web-dash-root .ide-titlebar.wb-chrome {
-  height: 26px;
-  padding: 0 2px 0 0;
+.web-dash-root .ide-titlebar.wb-chrome.topbar {
+  height: 28px;
+  padding: 0 1px 0 0;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: stretch;
-  column-gap: 2px;
-  background: var(--wb-chrome);
-  border-bottom: 1px solid var(--wb-border);
-  font-size: 10px;
+  column-gap: 0;
+  background: #101010;
+  border-bottom: 1px solid var(--ide-border);
+  font-size: var(--ide-font-ui);
+  color: var(--ide-text-dim);
 }
 
 .web-dash-root .wb-chrome-left {
@@ -2155,21 +2247,22 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
   mask-image: linear-gradient(to right, #000 96%, transparent 100%);
 }
 
-.web-dash-root .wb-menu-item {
+.web-dash-root .wb-menu-item.topbar-menu-item {
   flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   padding: 0 4px;
-  font-size: 11px;
+  height: 28px;
+  font-size: var(--ide-font-ui);
   font-weight: 400;
-  color: rgba(255, 255, 255, 0.28);
+  color: rgba(255, 255, 255, 0.2);
   user-select: none;
   cursor: default;
 }
 
-.web-dash-root .wb-menu-item:hover {
-  color: var(--wb-text-3);
-  background: var(--wb-hover);
+.web-dash-root .wb-menu-item.topbar-menu-item:hover {
+  color: rgba(255, 255, 255, 0.32);
+  background: var(--ide-hover);
 }
 
 .web-dash-root .wb-chrome-center {
@@ -2178,17 +2271,19 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
   justify-content: center;
 }
 
-.web-dash-root .wb-app-title {
-  font-size: 10px;
+.web-dash-root .wb-app-title.topbar-title {
+  font-size: var(--ide-font-ui);
   font-weight: 400;
-  color: rgba(255, 255, 255, 0.22);
+  color: var(--ide-text-dim);
+  opacity: 0.72;
   text-decoration: none;
   letter-spacing: 0;
   font-family: ui-monospace, Menlo, Consolas, monospace;
 }
 
-.web-dash-root .wb-app-title:hover {
-  color: rgba(255, 255, 255, 0.32);
+.web-dash-root .wb-app-title.topbar-title:hover {
+  color: var(--ide-text-muted);
+  opacity: 0.9;
 }
 
 .web-dash-root .wb-chrome-right,
@@ -2196,56 +2291,57 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 4px;
+  gap: 3px;
   min-width: 0;
 }
 
 .web-dash-root .ide-toolbar-btn {
-  font-size: 10px;
-  padding: 2px 7px;
-  border-radius: 2px;
+  font-size: var(--ide-font-small);
+  padding: 1px 5px;
+  border-radius: 0;
   font-weight: 400;
-  color: var(--wb-text-3);
+  color: var(--ide-text-dim);
   background: transparent;
-  border: 1px solid var(--wb-border);
+  border: 1px solid var(--ide-border);
 }
 
 .web-dash-root .ide-toolbar-btn:hover {
-  color: var(--wb-text-2);
-  background: var(--wb-hover);
+  color: var(--ide-text-dim);
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .web-dash-root .dash-plan-badge {
-  font-size: 9px;
+  font-size: 10px;
   padding: 1px 6px;
   font-weight: 500;
   border-radius: 0;
 }
 
-.web-dash-root .ide-dev-strip.wb-env-notice,
-.web-dash-root .ide-dev-strip {
+.web-dash-root .ide-dev-strip.wb-env-notice.warning-strip,
+.web-dash-root .ide-dev-strip.warning-strip {
   margin: 0;
-  padding: 0 8px;
+  height: 16px;
+  padding: 0 5px;
   min-height: 0;
-  line-height: 15px;
-  font-size: 9px;
+  line-height: 16px;
+  font-size: var(--ide-font-small);
   font-weight: 400;
-  color: rgba(255, 255, 255, 0.26);
-  background: rgba(255, 255, 255, 0.02);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+  color: rgba(255, 195, 95, 0.42);
+  background: rgba(255, 170, 40, 0.035);
+  border-bottom: 1px solid var(--ide-border);
 }
 
-.web-dash-root .ide-dev-strip .ide-code-inline {
-  font-size: 9px;
-  padding: 0 3px;
-  color: rgba(255, 255, 255, 0.32);
-  background: rgba(0, 0, 0, 0.22);
+.web-dash-root .ide-dev-strip.warning-strip .ide-code-inline {
+  font-size: var(--ide-font-small);
+  padding: 0 2px;
+  color: rgba(255, 200, 110, 0.4);
+  background: rgba(0, 0, 0, 0.18);
 }
 
 .web-dash-root .ide-checkout-banner {
   padding: 1px 8px;
   line-height: 14px;
-  font-size: 9px;
+  font-size: 10px;
   margin: 0;
 }
 
@@ -2255,51 +2351,67 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
   color: rgba(255, 255, 255, 0.38);
 }
 
-.web-dash-root .wb-activity-bar {
-  width: 40px;
-  max-width: 40px;
+.web-dash-root .wb-activity-bar.activity-bar {
+  width: 44px;
+  max-width: 44px;
   padding: 0;
   background: var(--wb-side);
-  border-right: 1px solid var(--wb-border);
+  border-right: 1px solid var(--ide-border);
 }
 
-.web-dash-root .wb-activity-btn {
+.web-dash-root .wb-activity-btn.activity-button {
+  position: relative;
   width: 100%;
-  max-width: 40px;
-  height: 28px;
+  max-width: 44px;
+  height: 34px;
   border-radius: 0;
-  border-left: 2px solid transparent;
-  color: var(--wb-text-3);
+  border-left: 1px solid transparent;
+  color: var(--ide-text-dim);
+  background: transparent;
 }
 
 .web-dash-root .wb-activity-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0.42;
+  opacity: 0.55;
   transition: opacity var(--wb-t-hover) var(--wb-ease-out);
 }
 
 .web-dash-root .wb-activity-icon svg {
-  width: 15px;
-  height: 15px;
+  width: 18px;
+  height: 18px;
 }
 
-.web-dash-root .wb-activity-btn:hover:not(:disabled) {
-  background: var(--wb-hover);
+.web-dash-root .wb-activity-btn.activity-button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.018);
 }
 
-.web-dash-root .wb-activity-btn:hover:not(:disabled) .wb-activity-icon {
-  opacity: 0.62;
+.web-dash-root .wb-activity-btn.activity-button:hover:not(:disabled) .wb-activity-icon {
+  opacity: 0.58;
 }
 
-.web-dash-root .wb-activity-btn-active {
-  background: rgba(0, 0, 0, 0.12);
-  border-left-color: var(--wb-activity-indicator);
+.web-dash-root .wb-activity-btn-active.activity-button-active,
+.web-dash-root .activity-button.wb-activity-btn-active {
+  background: transparent;
+  border-left-color: transparent;
 }
 
-.web-dash-root .wb-activity-btn-active .wb-activity-icon {
-  opacity: 0.88;
+.web-dash-root .wb-activity-btn-active.activity-button-active .wb-activity-icon,
+.web-dash-root .activity-button.wb-activity-btn-active .wb-activity-icon {
+  opacity: 0.9;
+}
+
+.web-dash-root .wb-activity-btn-active.activity-button-active::before,
+.web-dash-root .activity-button.wb-activity-btn-active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1px;
+  height: 18px;
+  background: rgba(255, 255, 255, 0.45);
 }
 
 .web-dash-root .wb-activity-btn:focus-visible {
@@ -2307,235 +2419,177 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
   outline-offset: -1px;
 }
 
-.web-dash-root .wb-composer {
+.web-dash-root aside.wb-composer.composer {
   display: flex;
   flex-direction: column;
   min-height: 0;
-  background: var(--wb-editor);
-  border-left: 1px solid var(--wb-border);
-  min-width: 232px;
-  max-width: 336px;
-}
-
-.web-dash-root .wb-composer-surface {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  background: var(--wb-editor);
-}
-
-.web-dash-root .wb-composer-chrome {
   flex-shrink: 0;
+  min-width: 300px;
+  max-width: 320px;
+  background: #0c0c0c;
+  border-left: 1px solid var(--ide-border);
+  font-size: var(--ide-font-small);
+  color: var(--ide-text-dim);
+}
+
+.web-dash-root .composer-top {
+  flex-shrink: 0;
+  height: 21px;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   border-bottom: none;
-  background: transparent;
+  color: var(--ide-text-dim);
+  font-size: var(--ide-font-small);
 }
 
-.web-dash-root .wb-composer-headrow {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 4px;
-  min-height: 0;
-}
-
-.web-dash-root .wb-composer-path {
-  display: flex;
-  align-items: center;
-  gap: 2px;
+.web-dash-root .composer-title {
   flex: 1;
   min-width: 0;
-  font-size: 10px;
-  font-family: ui-monospace, Menlo, Consolas, monospace;
-  color: var(--wb-text-3);
   overflow: hidden;
-  white-space: nowrap;
   text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  opacity: 0.48;
+  font-weight: 400;
 }
 
-.web-dash-root .wb-composer-bc-sep {
-  opacity: 0.4;
-  user-select: none;
-}
-
-.web-dash-root .wb-composer-bc-cur {
-  color: var(--wb-text-2);
-}
-
-.web-dash-root .wb-composer-model {
+.web-dash-root .model-chip {
   flex-shrink: 0;
-  width: auto;
-  min-width: 88px;
-  max-width: 42%;
-  padding: 0 2px;
-  font-size: 9px;
-  line-height: 1.3;
-  border: none;
+  height: 17px;
+  padding: 0 3px;
+  margin: 0;
+  font-size: var(--ide-font-small);
+  line-height: 15px;
   background: transparent;
-  color: var(--wb-text-3);
+  border: none;
+  color: var(--ide-text-dim);
   font-family: ui-monospace, Menlo, Consolas, monospace;
   cursor: pointer;
   appearance: none;
+  border-radius: 0;
 }
 
-.web-dash-root .wb-composer-model:focus {
+.web-dash-root .model-chip:focus {
   outline: none;
-  color: var(--wb-text-2);
+  color: var(--ide-text-muted);
 }
 
-.web-dash-root .wb-composer-model:disabled {
-  opacity: 0.35;
-}
-
-.web-dash-root .wb-composer-micro-inline {
-  margin: 0;
-  padding: 2px 5px 3px;
-  font-size: 10px;
-  line-height: 1.3;
-  color: var(--wb-text-3);
-}
-
-.web-dash-root .wb-composer-micro-muted {
-  color: var(--wb-text-3);
-}
-
-.web-dash-root .wb-composer-code {
-  font-size: 10px;
-  padding: 0 2px;
-  color: var(--wb-text-2);
-  background: rgba(0, 0, 0, 0.35);
-  border: none;
-  font-family: ui-monospace, Menlo, Consolas, monospace;
-}
-
-.web-dash-root .wb-composer-stack-flat {
-  flex: 1;
+.web-dash-root .composer-stream {
+  flex: 1 1 0;
   min-height: 0;
   overflow: auto;
   display: flex;
   flex-direction: column;
-  gap: 0;
-  padding: 0;
-  background: transparent;
-}
-
-.web-dash-root .wb-composer-sec {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  margin: 0;
   padding: 2px 4px;
-  border-bottom: none;
-}
-
-.web-dash-root .wb-composer-sec-grow {
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 0;
-  min-height: 0;
-  background: transparent;
-  box-shadow: inset 0 1px 0 var(--wb-border);
-}
-
-.web-dash-root .wb-composer-sec-label {
-  display: block;
-  font-size: 10px;
-  line-height: 1.2;
-  font-weight: 400;
-  color: var(--wb-text-3);
-  padding: 0 1px 2px;
-}
-
-.web-dash-root .wb-composer-field {
-  width: 100%;
-  box-sizing: border-box;
   margin: 0;
-  border: none;
-  background: transparent;
-  color: var(--wb-text-2);
-  font-size: 11px;
+  color: var(--ide-text-dim);
+  background: #0c0c0c;
+}
+
+.web-dash-root .composer-stream-err {
+  flex-shrink: 0;
+  margin: 0 0 3px;
+  padding: 1px 0;
+  font-size: var(--ide-font-small);
   line-height: 1.32;
-  resize: none;
   font-family: ui-monospace, Menlo, Consolas, monospace;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  color: rgba(255, 155, 145, 0.36);
 }
 
-.web-dash-root .wb-composer-field:focus {
-  outline: none;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07);
-  color: var(--wb-text-1);
-}
-
-.web-dash-root .wb-composer-field:disabled {
-  opacity: 0.35;
-}
-
-.web-dash-root .wb-composer-context {
-  min-height: 26px;
-  max-height: 44px;
-  padding: 2px 4px;
-}
-
-.web-dash-root .wb-composer-mission {
-  flex: 1 1 0;
-  min-height: 72px;
-  padding: 3px 4px;
+.web-dash-root .composer-stream-body {
+  flex: 1 1 auto;
+  margin: 0;
+  padding: 0;
+  font-size: var(--ide-font-small);
+  line-height: 1.32;
+  font-family: ui-monospace, Menlo, Consolas, 'Cascadia Mono', monospace;
+  color: rgba(255, 255, 255, 0.24);
+  white-space: pre-wrap;
+  word-break: break-word;
   background: transparent;
   border: none;
-  line-height: 1.32;
+  min-height: 0;
+  box-sizing: border-box;
 }
 
-.web-dash-root .wb-composer-sendbar {
+.web-dash-root .composer-inputbar {
+  flex-shrink: 0;
+  min-height: 22px;
+  max-height: 34px;
+  box-sizing: border-box;
+  overflow: hidden;
+  border-top: 1px solid var(--ide-border);
   display: flex;
-  justify-content: flex-end;
   align-items: center;
-  padding: 1px 4px 2px;
-  border-bottom: none;
-  background: transparent;
+  gap: 2px;
+  padding: 2px 4px;
+  background: #0c0c0c;
 }
 
-.web-dash-root .wb-composer-submit {
+.web-dash-root .composer-inputbar textarea,
+.web-dash-root .composer-prompt {
+  flex: 1;
+  min-width: 0;
+  min-height: 17px;
+  max-height: 24px;
+  margin: 0;
+  resize: none;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.38);
+  font-size: var(--ide-font-small);
+  line-height: 16px;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  field-sizing: content;
+  caret-color: rgba(255, 255, 255, 0.35);
+}
+
+.web-dash-root .composer-inputbar textarea::placeholder,
+.web-dash-root .composer-prompt::placeholder {
+  color: rgba(255, 255, 255, 0.22);
+}
+
+.web-dash-root .composer-inputbar button {
+  flex-shrink: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 20px;
-  height: 18px;
-  padding: 0 4px;
+  width: 20px;
+  height: 20px;
+  padding: 0;
   border: none;
   background: transparent;
-  color: var(--wb-text-3);
-  font-size: 10px;
+  color: rgba(255, 255, 255, 0.22);
+  font-size: var(--ide-font-small);
+  line-height: 1;
   cursor: pointer;
 }
 
-.web-dash-root .wb-composer-submit:hover:not(:disabled) {
-  background: var(--wb-hover);
-  color: var(--wb-text-2);
+.web-dash-root .composer-inputbar button:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.02);
+  color: rgba(255, 255, 255, 0.34);
 }
 
-.web-dash-root .wb-composer-submit:disabled {
+.web-dash-root .composer-inputbar button:disabled {
   opacity: 0.3;
-  cursor: not-allowed;
+  cursor: default;
 }
 
-.web-dash-root .wb-composer-submit-glyph {
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1;
+.web-dash-root .composer-send-busy {
+  opacity: 0.4;
 }
 
-.web-dash-root .wb-composer-submit-text {
-  font-size: 10px;
-  font-weight: 400;
-}
-
-.web-dash-root .wb-composer-quota {
-  font-size: 9px;
+.web-dash-root .composer-foot {
+  flex-shrink: 0;
+  font-size: var(--ide-font-small);
   margin: 0;
-  padding: 0 4px 3px;
-  color: rgba(255, 255, 255, 0.22);
-  line-height: 1.2;
-  background: transparent;
+  padding: 0 4px 2px;
+  color: rgba(255, 255, 255, 0.18);
+  line-height: 1.1;
+  background: #0c0c0c;
 }
 
 .web-dash-root .wb-sidebar {
@@ -2544,31 +2598,31 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
 }
 
 .web-dash-root .wb-sidebar-view-header {
-  min-height: 22px;
-  padding: 0 4px;
+  min-height: 17px;
+  padding: 0 2px;
   border-bottom: 1px solid var(--wb-border);
 }
 
 .web-dash-root .wb-sidebar-heading {
-  font-size: 10px;
+  font-size: var(--ide-font-small);
   font-weight: 600;
   letter-spacing: 0.04em;
   color: var(--wb-text-3);
 }
 
 .web-dash-root .wb-file-tree-header {
-  padding: 5px 6px 6px;
+  padding: 3px 4px 4px;
   border-bottom: 1px solid var(--wb-border);
 }
 
 .web-dash-root .wb-project-name {
-  font-size: 10px;
+  font-size: var(--ide-font-small);
   color: var(--wb-text-3);
 }
 
 .web-dash-root .wb-open-editors-label {
-  padding: 3px 6px 1px;
-  font-size: 10px;
+  padding: 1px 4px 1px;
+  font-size: var(--ide-font-small);
   font-weight: 500;
   letter-spacing: 0.04em;
 }
@@ -2583,11 +2637,11 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
 }
 
 .web-dash-root .wb-open-editor-main {
-  padding: 2px 4px 2px 5px;
+  padding: 1px 2px 1px 3px;
 }
 
 .web-dash-root .wb-open-editor-name {
-  font-size: 11px;
+  font-size: var(--ide-font-small);
 }
 
 .web-dash-root .wb-open-editor-close {
@@ -2597,18 +2651,18 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
 }
 
 .web-dash-root .wb-open-editor-row-active {
-  background: var(--wb-list-active-tint);
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .web-dash-root .wb-tree-row {
-  padding: 0 2px 0 1px;
-  min-height: 20px;
+  padding: 0 1px;
+  min-height: 22px;
   border-radius: 0;
-  gap: 2px;
+  gap: 0;
 }
 
 .web-dash-root .wb-tree-row:hover {
-  background: var(--wb-hover);
+  background: rgba(255, 255, 255, 0.012);
 }
 
 .web-dash-root .wb-tree-row:focus-visible {
@@ -2617,21 +2671,21 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
 }
 
 .web-dash-root .wb-tree-file.wb-tree-active {
-  background: var(--wb-list-active-tint);
-  color: var(--wb-text-1);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--ide-text-muted);
 }
 
 .web-dash-root .wb-tree-file.wb-tree-selected:not(.wb-tree-active) {
-  background: rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.028);
 }
 
 .web-dash-root .wb-tree-label {
-  font-size: 10px;
+  font-size: var(--ide-font-small);
   color: var(--wb-text-2);
 }
 
 .web-dash-root .wb-tree-file.wb-tree-active .wb-tree-label {
-  color: var(--wb-text-1);
+  color: var(--ide-text-muted);
 }
 
 .web-dash-root .wb-tree-icon {
@@ -2653,12 +2707,30 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
   opacity: 0.65;
 }
 
+.web-dash-root .wb-sidebar.explorer .explorer-row {
+  height: var(--ide-row-height);
+  min-height: var(--ide-row-height);
+  padding: 0 4px;
+  font-size: var(--ide-font-small);
+  box-sizing: border-box;
+}
+
+.web-dash-root .wb-sidebar.explorer .explorer-row:hover {
+  background: rgba(255, 255, 255, 0.014);
+}
+
+.web-dash-root .wb-sidebar.explorer .explorer-row svg {
+  width: 13px;
+  height: 13px;
+  opacity: 0.55;
+}
+
 .web-dash-root .wb-main {
   background: var(--wb-editor);
 }
 
 .web-dash-root .wb-tab-bar {
-  height: 26px;
+  height: 22px;
   background: var(--wb-tabs-bar);
   border-bottom: 1px solid var(--wb-border);
 }
@@ -2666,21 +2738,21 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
 .web-dash-root .wb-tab {
   min-width: 0;
   max-width: 200px;
-  padding: 0 6px;
-  font-size: 10px;
-  gap: 4px;
+  padding: 0 4px;
+  font-size: var(--ide-font-small);
+  gap: 2px;
   border-right: 1px solid var(--wb-border);
   color: var(--wb-text-3);
   background: var(--wb-tab-inactive);
 }
 
 .web-dash-root .wb-tab:hover {
-  background: var(--wb-side-raised);
-  color: var(--wb-text-2);
+  background: rgba(255, 255, 255, 0.012);
+  color: rgba(255, 255, 255, 0.4);
 }
 
 .web-dash-root .wb-tab:focus-visible {
-  outline: 1px solid rgba(255, 255, 255, 0.14);
+  outline: 1px solid var(--ide-border);
   outline-offset: -1px;
   z-index: 1;
 }
@@ -2726,6 +2798,7 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
   font-size: 11px;
   opacity: 0;
   pointer-events: none;
+  border-radius: 0;
 }
 
 .web-dash-root .wb-tab:hover .wb-tab-close {
@@ -2735,19 +2808,19 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
 }
 
 .web-dash-root .wb-tab-close:hover {
-  color: var(--wb-text-1);
-  background: var(--wb-hover);
+  color: var(--wb-text-3);
+  background: rgba(255, 255, 255, 0.014);
 }
 
 .web-dash-root .wb-breadcrumb {
   padding: 1px 4px;
-  font-size: 9px;
+  font-size: var(--ide-font-small);
   background: var(--wb-editor);
   border-bottom: 1px solid var(--wb-border);
 }
 
 .web-dash-root .wb-welcome {
-  padding: 12px 10px;
+  padding: 6px 6px;
   gap: 0;
   align-items: center;
   justify-content: center;
@@ -2787,9 +2860,9 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
 .web-dash-root .wb-welcome-keys li {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   padding: 2px 0;
-  font-size: 11px;
+  font-size: var(--ide-font-small);
   color: var(--wb-text-3);
 }
 
@@ -2801,10 +2874,10 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
   font-size: 10px;
   font-weight: 400;
   padding: 2px 6px;
-  border-radius: 3px;
-  border: 1px solid var(--wb-border);
+  border-radius: 0;
+  border: 1px solid var(--ide-border);
   background: rgba(0, 0, 0, 0.35);
-  color: var(--wb-text-1);
+  color: var(--ide-text);
 }
 
 .web-dash-root .wb-welcome-keys span {
@@ -2812,58 +2885,74 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
   opacity: 0.85;
 }
 
-.web-dash-root .wb-bottom {
-  border-top: 1px solid var(--wb-border);
+.web-dash-root .wb-bottom.bottom-panel {
+  border-top: 1px solid var(--ide-border);
   background: var(--wb-editor);
 }
 
-.web-dash-root .wb-bottom-tabs {
-  height: 20px;
+.web-dash-root .wb-bottom-tabs.bottom-tabs {
+  height: 24px;
   background: var(--wb-tabs-bar);
-  border-bottom: 1px solid var(--wb-border);
+  border-bottom: 1px solid var(--ide-border);
 }
 
-.web-dash-root .wb-bottom-tab {
+.web-dash-root .wb-bottom-tab.bottom-tab {
   padding: 0 6px;
-  font-size: 9px;
-  font-weight: 500;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.26);
+  font-size: var(--ide-font-small);
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ide-text-muted);
   border-bottom: 1px solid transparent;
 }
 
-.web-dash-root .wb-bottom-tab:hover {
-  color: rgba(255, 255, 255, 0.38);
+.web-dash-root .wb-bottom-tab.bottom-tab:hover {
+  color: var(--ide-text-muted);
+  background: rgba(255, 255, 255, 0.018);
 }
 
-.web-dash-root .wb-bottom-tab:focus-visible {
+.web-dash-root .wb-bottom-tab.bottom-tab:focus-visible {
   outline: 1px solid rgba(255, 255, 255, 0.08);
   outline-offset: -2px;
 }
 
-.web-dash-root .wb-bottom-tab-active {
-  color: rgba(255, 255, 255, 0.55);
-  border-bottom-color: var(--wb-tab-active-top);
+.web-dash-root .wb-bottom-tab.bottom-tab.wb-bottom-tab-active,
+.web-dash-root .wb-bottom-tab.bottom-tab.bottom-tab-active {
+  color: var(--ide-text-muted);
+  border-bottom-color: rgba(255, 255, 255, 0.38);
   margin-bottom: -1px;
 }
 
+.web-dash-root .wb-bottom-tab.bottom-tab.wb-bottom-tab-warn:not(.wb-bottom-tab-active) {
+  color: rgba(255, 175, 168, 0.4);
+}
+
+.web-dash-root .wb-bottom-tab-badge {
+  border-radius: 0;
+  background: rgba(248, 81, 73, 0.16);
+  color: rgba(255, 210, 205, 0.72);
+  font-weight: 500;
+  line-height: 14px;
+  min-width: 14px;
+  padding: 0 3px;
+}
+
 .web-dash-root .wb-bottom-collapse {
-  padding: 0 6px;
-  font-size: 10px;
+  padding: 0 5px;
+  font-size: var(--ide-font-small);
   color: var(--wb-text-3);
 }
 
-.web-dash-root .wb-bottom-body {
-  padding: 3px 5px 5px;
+.web-dash-root .wb-bottom.bottom-panel .wb-bottom-body {
+  padding: 2px 3px 3px;
   background: var(--wb-editor);
 }
 
 .web-dash-root .wb-output-pre,
 .web-dash-root .wb-output-empty {
-  font-size: 11px;
-  line-height: 1.28;
-  letter-spacing: 0.01em;
+  font-size: var(--ide-font-small);
+  line-height: 1.26;
+  letter-spacing: 0;
 }
 
 .web-dash-root .wb-output-pre {
@@ -2872,18 +2961,18 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
 }
 
 .web-dash-root .wb-output-empty {
-  color: var(--wb-text-3);
+  color: var(--ide-text-dim);
 }
 
 .web-dash-root .wb-terminal-placeholder {
-  font-size: 11px;
-  line-height: 1.35;
-  color: var(--wb-text-3);
+  font-size: var(--ide-font-small);
+  line-height: 1.26;
+  color: var(--ide-text-dim);
 }
 
 .web-dash-root .wb-terminal-placeholder strong {
-  color: var(--wb-text-2);
-  font-weight: 500;
+  color: var(--ide-text-muted);
+  font-weight: 400;
 }
 
 .web-dash-root .wb-output-error {
@@ -2905,48 +2994,48 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
   color: var(--wb-text-3);
 }
 
-.web-dash-root .wb-status-bar {
-  height: 20px;
+.web-dash-root .wb-status-bar.statusbar {
+  height: 21px;
   padding: 0 4px;
-  background: var(--wb-status-bg);
-  color: rgba(255, 255, 255, 0.24);
-  border-top: 1px solid var(--wb-border);
-  font-size: 9px;
+  background: #121212;
+  color: var(--ide-text-dim);
+  border-top: 1px solid var(--ide-border);
+  font-size: var(--ide-font-small);
   font-weight: 400;
 }
 
-.web-dash-root .wb-status-btn {
-  color: var(--wb-text-3);
-  padding: 1px 3px;
-  font-size: 10px;
+.web-dash-root .wb-status-bar.statusbar .wb-status-btn {
+  color: var(--ide-text-dim);
+  padding: 0 3px;
+  font-size: var(--ide-font-small);
 }
 
-.web-dash-root .wb-status-btn:hover {
-  background: var(--wb-hover);
-  color: var(--wb-text-2);
+.web-dash-root .wb-status-bar.statusbar .wb-status-btn:hover {
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--ide-text-dim);
 }
 
-.web-dash-root .wb-status-item {
-  color: var(--wb-text-3);
-  font-size: 10px;
+.web-dash-root .wb-status-bar.statusbar .wb-status-item {
+  color: var(--ide-text-dim);
+  font-size: var(--ide-font-small);
 }
 
-.web-dash-root .wb-status-sep-bar {
-  background: var(--wb-border-strong);
+.web-dash-root .wb-status-bar.statusbar .wb-status-sep-bar {
+  background: var(--ide-border);
 }
 
-.web-dash-root .wb-status-agent {
-  color: var(--wb-text-3);
+.web-dash-root .wb-status-bar.statusbar .wb-status-agent {
+  color: var(--ide-text-dim);
 }
 
-.web-dash-root .wb-status-project,
-.web-dash-root .wb-status-file {
-  color: rgba(255, 255, 255, 0.22);
+.web-dash-root .wb-status-bar.statusbar .wb-status-project,
+.web-dash-root .wb-status-bar.statusbar .wb-status-file {
+  color: var(--ide-text-dim);
 }
 
-.web-dash-root .wb-status-editor-meta {
-  color: rgba(255, 255, 255, 0.22);
-  font-size: 9px;
+.web-dash-root .wb-status-bar.statusbar .wb-status-editor-meta {
+  color: var(--ide-text-dim);
+  font-size: var(--ide-font-small);
 }
 
 /* ----- Web dashboard: motion + micro-interaction (feel, not layout) ----- */
@@ -3140,6 +3229,11 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
     color var(--wb-t-hover) var(--wb-ease-out);
 }
 
+.web-dash-root .wb-sidebar-icon-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.012);
+  color: rgba(255, 255, 255, 0.34);
+}
+
 .web-dash-root .wb-sidebar-icon-btn:active {
   background: rgba(0, 0, 0, 0.22);
   opacity: 0.9;
@@ -3231,49 +3325,36 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
   opacity: 0.82;
 }
 
-.web-dash-root .wb-composer-submit {
-  transition:
-    background-color var(--wb-t-hover) var(--wb-ease-out),
-    color var(--wb-t-hover) var(--wb-ease-out),
-    border-color var(--wb-t-hover) var(--wb-ease-out),
-    opacity var(--wb-t-press) var(--wb-ease-out);
-}
-
-.web-dash-root .wb-composer-submit:active:not(:disabled) {
-  background: rgba(0, 0, 0, 0.25);
-  opacity: 0.9;
-}
-
-.web-dash-root .wb-composer-field,
-.web-dash-root .wb-composer-model {
+.web-dash-root .composer-inputbar textarea,
+.web-dash-root .composer-prompt,
+.web-dash-root .model-chip {
   transition: border-color var(--wb-t-hover) var(--wb-ease-out), background-color var(--wb-t-hover) var(--wb-ease-out);
 }
 
-.web-dash-root .wb-composer-field::placeholder,
-.web-dash-root .wb-composer-context::placeholder,
-.web-dash-root .wb-composer-mission::placeholder {
-  color: rgba(255, 255, 255, 0.22);
+.web-dash-root .composer-inputbar textarea::placeholder,
+.web-dash-root .composer-prompt::placeholder {
   transition: opacity var(--wb-t-hover) var(--wb-ease-out);
 }
 
-.web-dash-root .wb-composer-field:focus::placeholder {
-  opacity: 0.55;
+.web-dash-root .composer-inputbar textarea:focus::placeholder,
+.web-dash-root .composer-prompt:focus::placeholder {
+  opacity: 0.5;
 }
 
-.web-dash-root .wb-menu-item {
+.web-dash-root .wb-menu-item.topbar-menu-item {
   transition: color var(--wb-t-hover) var(--wb-ease-out), background-color var(--wb-t-hover) var(--wb-ease-out);
 }
 
-.web-dash-root .wb-menu-item:active {
-  background: rgba(0, 0, 0, 0.15);
+.web-dash-root .wb-menu-item.topbar-menu-item:active {
+  background: rgba(0, 0, 0, 0.12);
 }
 
-.web-dash-root .wb-app-title {
-  transition: color var(--wb-t-hover) var(--wb-ease-out);
+.web-dash-root .wb-app-title.topbar-title {
+  transition: color var(--wb-t-hover) var(--wb-ease-out), opacity var(--wb-t-hover) var(--wb-ease-out);
 }
 
-.web-dash-root .wb-app-title:active {
-  opacity: 0.85;
+.web-dash-root .wb-app-title.topbar-title:active {
+  opacity: 0.65;
 }
 
 .web-dash-root .ide-toolbar-btn {
@@ -3291,28 +3372,46 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
 /* Focus: thin neutral ring, no product blue */
 .web-dash-root .wb-tree-row:focus-visible,
 .web-dash-root .wb-open-editor-main:focus-visible,
-.web-dash-root .wb-composer-field:focus-visible,
-.web-dash-root .wb-composer-model:focus-visible {
-  outline: 1px solid rgba(255, 255, 255, 0.12);
+.web-dash-root .composer-inputbar textarea:focus-visible,
+.web-dash-root .composer-prompt:focus-visible,
+.web-dash-root .model-chip:focus-visible {
+  outline: 1px solid rgba(255, 255, 255, 0.06);
   outline-offset: -1px;
 }
 
-.web-dash-root .wb-composer-submit:focus-visible {
-  outline: 1px solid rgba(255, 255, 255, 0.14);
-  outline-offset: 1px;
+.web-dash-root .composer-inputbar button:focus-visible {
+  outline: 1px solid rgba(255, 255, 255, 0.06);
+  outline-offset: -1px;
 }
 
 .web-dash-root .wb-activity-btn:focus-visible,
 .web-dash-root .wb-sidebar-icon-btn:focus-visible,
 .web-dash-root .wb-bottom-tab:focus-visible,
 .web-dash-root .wb-status-btn:focus-visible {
-  outline: 1px solid rgba(255, 255, 255, 0.12);
+  outline: 1px solid rgba(255, 255, 255, 0.085);
   outline-offset: -1px;
+}
+
+.web-dash-root .wb-search-hit-path {
+  color: var(--ide-text-muted);
+}
+
+.web-dash-root .wb-search-input {
+  border: 1px solid var(--ide-border);
+  background: #1a1a1a;
+  font-size: var(--ide-font-ui);
+  border-radius: 0 !important;
+}
+
+.web-dash-root .wb-search-input:focus {
+  outline: 1px solid var(--ide-border);
+  outline-offset: 0;
+  border-color: var(--ide-border);
 }
 
 /* Tight scroll — no smooth-scroll lag while streaming */
 .web-dash-root .wb-file-tree-scroll,
-.web-dash-root .wb-composer-stack-flat,
+.web-dash-root .composer-stream,
 .web-dash-root .wb-bottom-body,
 .web-dash-root .wb-search-sidebar,
 .web-dash-root .wb-scm-panel {
@@ -3321,36 +3420,36 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
 }
 
 .web-dash-root .wb-file-tree-scroll,
-.web-dash-root .wb-composer-stack-flat,
+.web-dash-root .composer-stream,
 .web-dash-root .wb-bottom-body {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
 }
 
 .web-dash-root .wb-file-tree-scroll:hover,
-.web-dash-root .wb-composer-stack-flat:hover,
+.web-dash-root .composer-stream:hover,
 .web-dash-root .wb-bottom-body:hover {
-  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
 }
 
 .web-dash-root .wb-file-tree-scroll::-webkit-scrollbar,
-.web-dash-root .wb-composer-stack-flat::-webkit-scrollbar,
+.web-dash-root .composer-stream::-webkit-scrollbar,
 .web-dash-root .wb-bottom-body::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
 .web-dash-root .wb-file-tree-scroll::-webkit-scrollbar-thumb,
-.web-dash-root .wb-composer-stack-flat::-webkit-scrollbar-thumb,
+.web-dash-root .composer-stream::-webkit-scrollbar-thumb,
 .web-dash-root .wb-bottom-body::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.07);
   border-radius: 0;
 }
 
 .web-dash-root .wb-file-tree-scroll:hover::-webkit-scrollbar-thumb,
-.web-dash-root .wb-composer-stack-flat:hover::-webkit-scrollbar-thumb,
+.web-dash-root .composer-stream:hover::-webkit-scrollbar-thumb,
 .web-dash-root .wb-bottom-body:hover::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.14);
 }
 
 .web-dash-root .wb-output-pre {
@@ -3375,12 +3474,8 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
 }
 
 .web-dash-root .wb-status-stream-quiet {
-  color: var(--wb-text-3);
-  font-size: 10px;
-}
-
-.web-dash-root .wb-composer-submit-busy .wb-composer-submit-glyph {
-  opacity: 0.45;
+  color: var(--ide-text-dim);
+  font-size: var(--ide-font-small);
 }
 
 @keyframes wb-monaco-load-fade {

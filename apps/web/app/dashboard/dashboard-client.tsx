@@ -1,12 +1,12 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useUser } from '@clerk/nextjs';
 import { AccountMenu } from '@/components/clerk-ui';
 import { StripePortalButton } from '@/components/stripe-portal-button';
-import { AGENT_MISSION_MAX_CHARS, AGENT_PROJECT_CONTEXT_MAX_CHARS } from '@/lib/agent-api-limits';
+import { AGENT_MISSION_MAX_CHARS } from '@/lib/agent-api-limits';
 import { isClerkEnabled } from '@/lib/clerk-enabled';
 import type { AgentErrorBody } from '@/lib/agent-error-format';
 import { formatAgentApiError } from '@/lib/agent-error-format';
@@ -15,6 +15,7 @@ import {
   normalizeEntitlementTier,
 } from '@/lib/stripe-entitlements';
 import type { WebIdeWorkbenchProps } from '@/components/web-ide/WebIdeWorkbench';
+import { runComposerStructureAssertions } from '@/lib/web-dash-ui-spec-assert';
 
 const WebIdeWorkbench = dynamic<WebIdeWorkbenchProps>(
   () => import('@/components/web-ide/WebIdeWorkbench').then((m) => ({ default: m.WebIdeWorkbench })),
@@ -59,12 +60,14 @@ function PostCheckoutClerkRefresh({ show }: { show: boolean }) {
 export function DashboardClient() {
   const [checkoutSuccessBanner, setCheckoutSuccessBanner] = useState(false);
   const [mission, setMission] = useState('');
-  const [projectContext, setProjectContext] = useState('');
+  const [projectContext] = useState('');
   const [model, setModel] = useState<ModelId>('claude');
   const [output, setOutput] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [quotaHint, setQuotaHint] = useState<string | null>(null);
+  const composerStreamRef = useRef<HTMLDivElement>(null);
+  const composerShellRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -79,6 +82,19 @@ export function DashboardClient() {
     const qs = params.toString();
     window.history.replaceState(null, '', `${window.location.pathname}${qs ? `?${qs}` : ''}`);
   }, []);
+
+  useEffect(() => {
+    const el = composerStreamRef.current;
+    if (!el) return;
+    el.scrollTop = el.scrollHeight;
+  }, [output, error, loading]);
+
+  useLayoutEffect(() => {
+    const id = requestAnimationFrame(() => {
+      runComposerStructureAssertions(composerShellRef.current);
+    });
+    return () => cancelAnimationFrame(id);
+  }, [mission, output, error, loading, quotaHint]);
 
   async function runAssistant() {
     setLoading(true);
@@ -143,85 +159,71 @@ export function DashboardClient() {
   }
 
   const composer = (
-    <div className="wb-composer-surface">
-      <div className="wb-composer-chrome">
-        <div className="wb-composer-headrow">
-          <div className="wb-composer-path" aria-label="Composer context">
-            <span className="wb-composer-bc">web-workspace</span>
-            <span className="wb-composer-bc-sep" aria-hidden>
-              ›
-            </span>
-            <span className="wb-composer-bc-cur">local</span>
-          </div>
-          <select
-            className="wb-composer-model"
-            value={model}
-            onChange={(e) => setModel(e.target.value as ModelId)}
-            aria-label="Model"
-          >
-            <option value="claude">Claude Sonnet</option>
-            <option value="gpt4o">GPT-4o</option>
-            <option value="deepseek">DeepSeek</option>
-          </select>
-        </div>
+    <div className="composer-shell" ref={composerShellRef}>
+      <div className="composer-top">
+        <span className="composer-title">web-workspace · local</span>
+        <select
+          className="model-chip"
+          value={model}
+          onChange={(e) => setModel(e.target.value as ModelId)}
+          aria-label="Model"
+        >
+          <option value="claude">Claude Sonnet</option>
+          <option value="gpt4o">GPT-4o</option>
+          <option value="deepseek">DeepSeek</option>
+        </select>
       </div>
-      <div className="wb-composer-stack wb-composer-stack-flat">
-        <div className="wb-composer-sec">
-          <textarea
-            className="wb-composer-field wb-composer-context"
-            value={projectContext}
-            onChange={(e) => setProjectContext(e.target.value)}
-            placeholder="Context"
-            aria-label="Context"
-            maxLength={AGENT_PROJECT_CONTEXT_MAX_CHARS}
-            spellCheck={false}
-          />
-        </div>
-        <div className="wb-composer-sec wb-composer-sec-grow">
-          <textarea
-            data-composer-mission
-            className="wb-composer-field wb-composer-mission"
-            value={mission}
-            onChange={(e) => setMission(e.target.value)}
-            placeholder="Input"
-            aria-label="Input"
-            maxLength={AGENT_MISSION_MAX_CHARS}
-            spellCheck={false}
-          />
-        </div>
-        <div className="wb-composer-sendbar">
-          <button
-            type="button"
-            className={`wb-composer-submit${loading ? ' wb-composer-submit-busy' : ''}`}
-            disabled={loading || !mission.trim()}
-            onClick={runAssistant}
-            aria-label={loading ? 'Running' : 'Send'}
-          >
-            <span className="wb-composer-submit-glyph" aria-hidden>
-              ↑
-            </span>
-          </button>
-        </div>
-        {quotaHint ? <p className="wb-composer-quota">{quotaHint}</p> : null}
+      <div className="composer-stream" ref={composerStreamRef}>
+        {error ? <div className="composer-stream-err">{error}</div> : null}
+        <pre className="composer-stream-body">{output || '\u00a0'}</pre>
       </div>
+      <div className="composer-inputbar">
+        <textarea
+          data-composer-mission
+          className="composer-prompt"
+          rows={1}
+          value={mission}
+          onChange={(e) => setMission(e.target.value)}
+          placeholder="Ask, edit, or run…"
+          aria-label="Agent input"
+          maxLength={AGENT_MISSION_MAX_CHARS}
+          spellCheck={false}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey && (e.metaKey || e.ctrlKey)) {
+              e.preventDefault();
+              if (!loading && mission.trim()) void runAssistant();
+            }
+          }}
+        />
+        <button
+          type="button"
+          className={`composer-send${loading ? ' composer-send-busy' : ''}`}
+          disabled={loading || !mission.trim()}
+          onClick={() => void runAssistant()}
+          aria-label={loading ? 'Running' : 'Send'}
+        >
+          ↑
+        </button>
+      </div>
+      {quotaHint ? <div className="composer-foot">{quotaHint}</div> : null}
     </div>
   );
 
   return (
     <div className="dashboard web-dash-root">
       {isClerkEnabled() ? <PostCheckoutClerkRefresh show={checkoutSuccessBanner} /> : null}
-      <header className="ide-titlebar wb-chrome">
+      <header className="ide-titlebar wb-chrome topbar">
         <div className="wb-chrome-left">
           <nav className="wb-menubar" aria-label="Application menu">
             {(['File', 'Edit', 'Selection', 'View', 'Go', 'Run', 'Terminal', 'Help'] as const).map((label) => (
-              <span key={label} className="wb-menu-item">
+              <span key={label} className="wb-menu-item topbar-menu-item">
                 {label}
               </span>
             ))}
           </nav>
         </div>
         <div className="wb-chrome-center">
-          <Link href="/" className="wb-app-title" title="Home">
+          <Link href="/" className="wb-app-title topbar-title" title="Home">
             web-workspace
           </Link>
         </div>
@@ -235,7 +237,7 @@ export function DashboardClient() {
       </header>
 
       {!isClerkEnabled() ? (
-        <p className="ide-dev-strip wb-env-notice" role="status">
+        <p className="ide-dev-strip wb-env-notice warning-strip" role="status">
           Local mode — Clerk disabled. Set keys in <code className="ide-code-inline">.env</code>.
         </p>
       ) : null}
