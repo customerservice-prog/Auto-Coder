@@ -1,8 +1,7 @@
 'use client';
 
-import '@/components/web-ide/monaco-bootstrap';
 import dynamic from 'next/dynamic';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { editor } from 'monaco-editor';
 
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), {
@@ -37,8 +36,28 @@ export function WebMonacoPane({
   onEditorReady,
   onCursorPositionChange,
 }: WebMonacoPaneProps) {
+  const [monacoLoaderReady, setMonacoLoaderReady] = useState(false);
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const cursorDisposableRef = useRef<{ dispose: () => void } | null>(null);
+
+  /** Must run only in the browser — importing `monaco-editor` at module scope breaks SSR. */
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const monaco = await import('monaco-editor');
+        const { loader } = await import('@monaco-editor/react');
+        loader.config({ monaco });
+        if (!cancelled) setMonacoLoaderReady(true);
+      } catch {
+        if (!cancelled) setMonacoLoaderReady(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const options = useMemo(
     (): editor.IStandaloneEditorConstructionOptions => ({
       minimap: { enabled: Boolean(minimapEnabled), scale: 0.85, maxColumn: 120 },
@@ -95,17 +114,23 @@ export function WebMonacoPane({
 
   return (
     <div className="wb-monaco-root">
-      <MonacoEditor
-        key={path}
-        height="100%"
-        theme="vs-dark"
-        path={path}
-        language={language}
-        value={value}
-        options={options}
-        onMount={onMount}
-        onChange={readOnly ? undefined : (v) => onChange?.(v ?? '')}
-      />
+      {!monacoLoaderReady ? (
+        <div className="wb-monaco-loading" aria-busy="true">
+          Loading editor…
+        </div>
+      ) : (
+        <MonacoEditor
+          key={path}
+          height="100%"
+          theme="vs-dark"
+          path={path}
+          language={language}
+          value={value}
+          options={options}
+          onMount={onMount}
+          onChange={readOnly ? undefined : (v) => onChange?.(v ?? '')}
+        />
+      )}
     </div>
   );
 }

@@ -8,6 +8,7 @@
     "dev:web": "turbo run dev --filter=web",
     "dev:cli": "turbo run dev --filter=cli",
     "build": "turbo run build",
+    "start": "pnpm --filter web start",
     "build:desktop": "turbo run build --filter=desktop",
     "build:web": "turbo run build --filter=web",
     "lint": "turbo run lint",
