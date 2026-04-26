@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { sortByFuzzy } from '@/components/web-ide/workbench-fuzzy';
 
 export interface QuickOpenEntry {
   path: string;
@@ -11,7 +12,7 @@ interface WebQuickOpenProps {
   open: boolean;
   onClose: () => void;
   entries: QuickOpenEntry[];
-  onPick: (path: string, name: string) => void;
+  onPick: (path: string, name: string, opts?: { openInNewTab?: boolean }) => void;
 }
 
 export function WebQuickOpen({ open, onClose, entries, onPick }: WebQuickOpenProps) {
@@ -20,11 +21,13 @@ export function WebQuickOpen({ open, onClose, entries, onPick }: WebQuickOpenPro
   const inputRef = useRef<HTMLInputElement>(null);
 
   const filtered = useMemo(() => {
-    const s = q.trim().toLowerCase();
+    const s = q.trim();
     if (!s) return entries;
-    return entries.filter(
-      (e) => e.name.toLowerCase().includes(s) || e.path.toLowerCase().includes(s),
-    );
+    const hay = (e: QuickOpenEntry) => `${e.name} ${e.path}`;
+    const scored = sortByFuzzy(s, entries, hay);
+    if (scored.length > 0) return scored;
+    const low = s.toLowerCase();
+    return entries.filter((e) => e.name.toLowerCase().includes(low) || e.path.toLowerCase().includes(low));
   }, [entries, q]);
 
   useEffect(() => {
@@ -42,7 +45,7 @@ export function WebQuickOpen({ open, onClose, entries, onPick }: WebQuickOpenPro
   const run = useCallback(() => {
     const row = filtered[idx];
     if (row) {
-      onPick(row.path, row.name);
+      onPick(row.path, row.name, undefined);
       onClose();
     }
   }, [filtered, idx, onPick, onClose]);
@@ -98,10 +101,23 @@ export function WebQuickOpen({ open, onClose, entries, onPick }: WebQuickOpenPro
                   role="option"
                   aria-selected={i === idx}
                   className={`wb-palette-item ${i === idx ? 'wb-palette-item-active' : ''}`}
-                  onClick={() => {
+                  onClick={(ev) => {
                     setIdx(i);
-                    onPick(row.path, row.name);
+                    if (ev.ctrlKey || ev.metaKey) {
+                      ev.preventDefault();
+                      onPick(row.path, row.name, { openInNewTab: true });
+                    } else {
+                      onPick(row.path, row.name);
+                    }
                     onClose();
+                  }}
+                  onAuxClick={(ev) => {
+                    if (ev.button === 1) {
+                      ev.preventDefault();
+                      setIdx(i);
+                      onPick(row.path, row.name, { openInNewTab: true });
+                      onClose();
+                    }
                   }}
                   onMouseEnter={() => setIdx(i)}
                 >

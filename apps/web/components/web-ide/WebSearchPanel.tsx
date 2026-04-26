@@ -73,7 +73,7 @@ export function WebSearchPanel({ onOpenFile }: WebSearchPanelProps) {
         />
         <input
           className="wb-search-input wb-search-replace"
-          placeholder="Replace (demo — not applied)"
+          placeholder="Replace"
           value={replace}
           onChange={(e) => setReplace(e.target.value)}
           spellCheck={false}
@@ -90,10 +90,10 @@ export function WebSearchPanel({ onOpenFile }: WebSearchPanelProps) {
           </label>
         </div>
       </div>
-      <p className="wb-search-scope">Searching demo buffers only — full workspace indexer ships in the desktop app.</p>
+      <p className="wb-search-scope">Demo files only.</p>
       <div className="wb-search-results" role="list">
         {query.trim() === '' ? (
-          <p className="wb-search-empty">Type to search across open demo files.</p>
+          <p className="wb-search-empty">Enter text to search.</p>
         ) : results.length === 0 ? (
           <p className="wb-search-empty">No results.</p>
         ) : (

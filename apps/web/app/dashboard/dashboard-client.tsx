@@ -21,22 +21,13 @@ const WebIdeWorkbench = dynamic<WebIdeWorkbenchProps>(
   {
     ssr: false,
     loading: () => (
-      <div
-        className="wb-app wb-app-boot"
-        role="status"
-        aria-live="polite"
-        style={{
-          flex: 1,
-          minHeight: 0,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: '#1e1e1e',
-          color: '#9d9d9d',
-          fontSize: 13,
-        }}
-      >
-        Loading workspace…
+      <div className="wb-app wb-app-boot" role="status" aria-live="polite">
+        <span className="wb-app-boot-label">Loading workspace</span>
+        <span className="wb-app-boot-dots" aria-hidden>
+          <span />
+          <span />
+          <span />
+        </span>
       </div>
     ),
   },
@@ -150,46 +141,50 @@ export function DashboardClient() {
 
   const composer = (
     <>
-      <div className="ide-sidebar-header">
-        <h1 className="ide-sidebar-title">Composer</h1>
-        <p className="ide-sidebar-sub">
-          Same agent as desktop — streams to <strong>Output</strong> below the editor. Model keys from{' '}
-          <code className="ide-code-inline">.env</code>.
-        </p>
-      </div>
-      <div className="ide-form">
-        <label className="ide-field">
-          <span className="ide-field-label">Model</span>
+      <div className="wb-composer-chrome">
+        <div className="wb-composer-headrow">
+          <div className="wb-composer-path" aria-label="Composer context">
+            <span className="wb-composer-bc">web-workspace</span>
+            <span className="wb-composer-bc-sep" aria-hidden>
+              ›
+            </span>
+            <span className="wb-composer-bc-cur">local</span>
+          </div>
           <select
-            className="ide-input ide-select"
+            className="wb-composer-model"
             value={model}
             onChange={(e) => setModel(e.target.value as ModelId)}
             disabled={loading}
+            aria-label="Model"
           >
             <option value="claude">Claude Sonnet</option>
             <option value="gpt4o">GPT-4o</option>
             <option value="deepseek">DeepSeek</option>
           </select>
-        </label>
-
-        <label className="ide-field">
-          <span className="ide-field-label">Context</span>
+        </div>
+        <p className="wb-composer-micro-inline">
+          <span className="wb-composer-micro-muted">Streams to Output ·</span>{' '}
+          <code className="ide-code-inline wb-composer-code">.env</code>
+        </p>
+      </div>
+      <div className="wb-composer-stack wb-composer-stack-flat">
+        <label className="wb-composer-sec">
+          <span className="wb-composer-sec-label">Context</span>
           <textarea
-            className="ide-input ide-textarea ide-textarea-tall"
+            className="wb-composer-field wb-composer-context"
             value={projectContext}
             onChange={(e) => setProjectContext(e.target.value)}
-            placeholder="@workspace — paste paths, errors, snippets…"
+            placeholder="@workspace — paths, errors, snippets…"
             maxLength={AGENT_PROJECT_CONTEXT_MAX_CHARS}
             disabled={loading}
             spellCheck={false}
           />
         </label>
-
-        <label className="ide-field">
-          <span className="ide-field-label">Mission</span>
+        <label className="wb-composer-sec wb-composer-sec-grow">
+          <span className="wb-composer-sec-label">Mission</span>
           <textarea
             data-composer-mission
-            className="ide-input ide-textarea"
+            className="wb-composer-field wb-composer-mission"
             value={mission}
             onChange={(e) => setMission(e.target.value)}
             placeholder="What should the agent do?"
@@ -198,17 +193,24 @@ export function DashboardClient() {
             spellCheck={false}
           />
         </label>
-
-        <button
-          type="button"
-          className="ide-submit ide-submit-send"
-          disabled={loading || !mission.trim()}
-          onClick={runAssistant}
-          aria-label={loading ? 'Generating' : 'Send to agent'}
-        >
-          {loading ? <span className="ide-submit-loading">Generating…</span> : <span className="ide-submit-arrow">↑</span>}
-        </button>
-        {quotaHint ? <p className="ide-quota">{quotaHint}</p> : null}
+        <div className="wb-composer-sendbar">
+          <button
+            type="button"
+            className="wb-composer-submit"
+            disabled={loading || !mission.trim()}
+            onClick={runAssistant}
+            aria-label={loading ? 'Generating' : 'Send to agent'}
+          >
+            {loading ? (
+              <span className="wb-composer-submit-text">Generating…</span>
+            ) : (
+              <span className="wb-composer-submit-glyph" aria-hidden>
+                ↑
+              </span>
+            )}
+          </button>
+        </div>
+        {quotaHint ? <p className="wb-composer-quota">{quotaHint}</p> : null}
       </div>
     </>
   );
@@ -217,27 +219,31 @@ export function DashboardClient() {
     <div className="dashboard web-dash-root">
       {isClerkEnabled() ? <PostCheckoutClerkRefresh show={checkoutSuccessBanner} /> : null}
       <header className="ide-titlebar wb-chrome">
-        <div className="ide-titlebar-left">
-          <Link href="/" className="ide-brand">
-            <span className="ide-brand-mark" aria-hidden />
-            <span className="ide-brand-text">Auto-Coder</span>
-          </Link>
-          <span className="ide-titlebar-sep" aria-hidden />
-          <span className="ide-product-label">
-            Web IDE
-            {isClerkEnabled() ? <ProPlanBadge /> : null}
-          </span>
+        <div className="wb-chrome-left">
+          <nav className="wb-menubar" aria-label="Application menu">
+            {(['File', 'Edit', 'Selection', 'View', 'Go', 'Run', 'Terminal', 'Help'] as const).map((label) => (
+              <span key={label} className="wb-menu-item">
+                {label}
+              </span>
+            ))}
+          </nav>
         </div>
-        <div className="ide-titlebar-right">
+        <div className="wb-chrome-center">
+          <Link href="/" className="wb-app-title">
+            Auto-Coder
+          </Link>
+        </div>
+        <div className="ide-titlebar-right wb-chrome-right">
           {isClerkEnabled() ? (
             <StripePortalButton className="btn-outline ide-toolbar-btn">Billing</StripePortalButton>
           ) : null}
+          {isClerkEnabled() ? <ProPlanBadge /> : null}
           <AccountMenu />
         </div>
       </header>
 
       {!isClerkEnabled() ? (
-        <p className="ide-dev-strip" role="status">
+        <p className="ide-dev-strip wb-env-notice" role="status">
           Local mode — sign-in off. Add real Clerk keys in <code className="ide-code-inline">.env</code> when you deploy;
           the API still runs with your model keys.
         </p>

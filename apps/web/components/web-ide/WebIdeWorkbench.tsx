@@ -15,6 +15,14 @@ import type { editor } from 'monaco-editor';
 import { isClerkEnabled } from '@/lib/clerk-enabled';
 import { WebMonacoPane } from '@/components/web-ide/WebMonacoPane';
 import { WebCommandPalette, type PaletteItem } from '@/components/web-ide/WebCommandPalette';
+import { WebContextMenu, type ContextMenuItem } from '@/components/web-ide/WebContextMenu';
+import {
+  loadRecentCommandIds,
+  loadWorkbenchPersisted,
+  recordRecentCommandId,
+  saveWorkbenchPersisted,
+  type WorkbenchPersisted,
+} from '@/components/web-ide/workbench-persist';
 import { WebQuickOpen } from '@/components/web-ide/WebQuickOpen';
 import { WebKeyboardShortcutsModal } from '@/components/web-ide/WebKeyboardShortcutsModal';
 import { WebGoToLine } from '@/components/web-ide/WebGoToLine';
@@ -53,12 +61,31 @@ interface OpenBuffer {
   language: string;
   content: string;
   isDirty: boolean;
+  pinned: boolean;
 }
 
 function buildInitialBuffers(): Record<string, OpenBuffer> {
   const out: Record<string, OpenBuffer> = {};
   for (const [p, b] of Object.entries(DEMO_BUFFERS)) {
-    out[p] = { path: p, name: b.name, language: b.language, content: b.content, isDirty: false };
+    out[p] = { path: p, name: b.name, language: b.language, content: b.content, isDirty: false, pinned: false };
+  }
+  if (out[DEFAULT_OPEN_PATH]) {
+    out[DEFAULT_OPEN_PATH] = { ...out[DEFAULT_OPEN_PATH], pinned: true };
+  }
+  return out;
+}
+
+function collectVisibleFiles(
+  nodes: WebDemoNode[],
+  expanded: Set<string>,
+  out: { path: string; name: string }[] = [],
+): { path: string; name: string }[] {
+  for (const n of nodes) {
+    if (n.type === 'directory') {
+      if (expanded.has(n.path) && n.children) collectVisibleFiles(n.children, expanded, out);
+    } else {
+      out.push({ path: n.path, name: n.name });
+    }
   }
   return out;
 }
@@ -88,9 +115,13 @@ function DemoTree(props: {
   expanded: Set<string>;
   toggleDir: (path: string) => void;
   activeFile: string;
-  onFileOpen: (path: string, name: string) => void;
+  selectedFile: string | null;
+  onFileSelect: (path: string, name: string) => void;
+  onFileOpen: (path: string, name: string, opts?: { newTab?: boolean }) => void;
+  onFileContextMenu?: (path: string, name: string, e: ReactMouseEvent) => void;
 }) {
-  const { nodes, depth, expanded, toggleDir, activeFile, onFileOpen } = props;
+  const { nodes, depth, expanded, toggleDir, activeFile, selectedFile, onFileSelect, onFileOpen, onFileContextMenu } =
+    props;
   return (
     <>
       {nodes.map((node) => (
@@ -100,11 +131,14 @@ function DemoTree(props: {
               <button
                 type="button"
                 className="wb-tree-row"
-                style={{ paddingLeft: 8 + depth * 12 }}
+                style={{ paddingLeft: 5 + depth * 5 }}
                 onClick={() => toggleDir(node.path)}
               >
-                <span className="wb-tree-chevron" aria-hidden>
-                  {expanded.has(node.path) ? '▼' : '▶'}
+                <span
+                  className={`wb-tree-chevron wb-tree-chevron-rot${expanded.has(node.path) ? ' wb-tree-chevron-rot-open' : ''}`}
+                  aria-hidden
+                >
+                  ▶
                 </span>
                 <span className="wb-tree-icon" aria-hidden>
                   <IconFolder />
@@ -118,16 +152,37 @@ function DemoTree(props: {
                   expanded={expanded}
                   toggleDir={toggleDir}
                   activeFile={activeFile}
+                  selectedFile={selectedFile}
+                  onFileSelect={onFileSelect}
                   onFileOpen={onFileOpen}
+                  onFileContextMenu={onFileContextMenu}
                 />
               ) : null}
             </>
           ) : (
             <button
               type="button"
-              className={`wb-tree-row wb-tree-file ${activeFile === node.path ? 'wb-tree-active' : ''}`}
-              style={{ paddingLeft: 8 + depth * 12 }}
-              onClick={() => onFileOpen(node.path, node.name)}
+              className={`wb-tree-row wb-tree-file ${activeFile === node.path ? 'wb-tree-active' : ''} ${selectedFile === node.path ? 'wb-tree-selected' : ''}`}
+              style={{ paddingLeft: 5 + depth * 5 }}
+              onClick={(e) => {
+                if (e.ctrlKey || e.metaKey) {
+                  e.preventDefault();
+                  onFileOpen(node.path, node.name, { newTab: true });
+                } else {
+                  onFileSelect(node.path, node.name);
+                }
+              }}
+              onDoubleClick={(e) => {
+                e.preventDefault();
+                onFileOpen(node.path, node.name);
+              }}
+              onAuxClick={(e) => {
+                if (e.button === 1) {
+                  e.preventDefault();
+                  onFileOpen(node.path, node.name, { newTab: true });
+                }
+              }}
+              onContextMenu={(e) => onFileContextMenu?.(node.path, node.name, e)}
             >
               <span className="wb-tree-chevron wb-tree-chevron-spacer" aria-hidden />
               <span className="wb-tree-icon" aria-hidden>
@@ -164,21 +219,28 @@ export function WebIdeWorkbench({
   const [buffers, setBuffers] = useState<Record<string, OpenBuffer>>(buildInitialBuffers);
   const [openTabs, setOpenTabs] = useState<string[]>([DEFAULT_OPEN_PATH]);
   const [activePath, setActivePath] = useState(DEFAULT_OPEN_PATH);
+  const [selectedExplorerPath, setSelectedExplorerPath] = useState<string | null>(DEFAULT_OPEN_PATH);
+  const [previewTabPath, setPreviewTabPath] = useState<string | null>(null);
+  const previewTabPathRef = useRef<string | null>(null);
+  const [recentCommandIds, setRecentCommandIds] = useState<string[]>([]);
+  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number; items: ContextMenuItem[] } | null>(null);
   const [bottomExpanded, setBottomExpanded] = useState(true);
   const [bottomTab, setBottomTab] = useState<BottomTab>('output');
   const [minimapEnabled, setMinimapEnabled] = useState(true);
-  const [sidebarW, setSidebarW] = useState(260);
-  const [composerW, setComposerW] = useState(380);
-  const [bottomH, setBottomH] = useState(220);
+  const [sidebarW, setSidebarW] = useState(256);
+  const [composerW, setComposerW] = useState(300);
+  const [bottomH, setBottomH] = useState(200);
   const layoutDragRef = useRef<{ kind: 'sb' | 'comp' | 'panel'; start: number; initial: number } | null>(null);
   const [cursorLine, setCursorLine] = useState(1);
   const [cursorCol, setCursorCol] = useState(1);
   const prevAgentErrorRef = useRef<string | null>(null);
+  const bottomPanelInitedRef = useRef(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [quickOpen, setQuickOpen] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [goToLineOpen, setGoToLineOpen] = useState(false);
   const [zenMode, setZenMode] = useState(false);
+  const [layoutDragging, setLayoutDragging] = useState(false);
   const paletteOpenRef = useRef(false);
   const quickOpenRef = useRef(false);
   const shortcutsOpenRef = useRef(false);
@@ -186,7 +248,13 @@ export function WebIdeWorkbench({
   const zenModeRef = useRef(false);
   const openTabsRef = useRef(openTabs);
   const activePathRef = useRef(activePath);
+  const buffersRef = useRef(buffers);
   const monacoEditorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+  const viewStatesRef = useRef<Record<string, editor.ICodeEditorViewState | null>>({});
+  const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const explorerTreeRef = useRef<HTMLDivElement | null>(null);
+  const closeTabRef = useRef<(path: string, e?: ReactMouseEvent) => void>(() => {});
+  const bottomBodyRef = useRef<HTMLDivElement | null>(null);
   paletteOpenRef.current = paletteOpen;
   quickOpenRef.current = quickOpen;
   shortcutsOpenRef.current = shortcutsOpen;
@@ -194,6 +262,8 @@ export function WebIdeWorkbench({
   zenModeRef.current = zenMode;
   openTabsRef.current = openTabs;
   activePathRef.current = activePath;
+  buffersRef.current = buffers;
+  previewTabPathRef.current = previewTabPath;
 
   useEffect(() => {
     const onMove = (e: globalThis.MouseEvent) => {
@@ -204,7 +274,7 @@ export function WebIdeWorkbench({
         setSidebarW((w) => Math.min(520, Math.max(180, d.initial + dx)));
       } else if (d.kind === 'comp') {
         const dx = d.start - e.clientX;
-        setComposerW((w) => Math.min(560, Math.max(280, d.initial + dx)));
+        setComposerW((w) => Math.min(360, Math.max(248, d.initial + dx)));
       } else {
         const dy = d.start - e.clientY;
         setBottomH((h) => Math.min(520, Math.max(120, d.initial + dy)));
@@ -214,6 +284,7 @@ export function WebIdeWorkbench({
       if (layoutDragRef.current) {
         layoutDragRef.current = null;
       }
+      setLayoutDragging(false);
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
     };
@@ -227,6 +298,7 @@ export function WebIdeWorkbench({
 
   const beginSidebarResize = useCallback((e: ReactMouseEvent) => {
     e.preventDefault();
+    setLayoutDragging(true);
     layoutDragRef.current = { kind: 'sb', start: e.clientX, initial: sidebarW };
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
@@ -234,6 +306,7 @@ export function WebIdeWorkbench({
 
   const beginComposerResize = useCallback((e: ReactMouseEvent) => {
     e.preventDefault();
+    setLayoutDragging(true);
     layoutDragRef.current = { kind: 'comp', start: e.clientX, initial: composerW };
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
@@ -241,12 +314,17 @@ export function WebIdeWorkbench({
 
   const beginPanelResize = useCallback((e: ReactMouseEvent) => {
     e.preventDefault();
+    setLayoutDragging(true);
     layoutDragRef.current = { kind: 'panel', start: e.clientY, initial: bottomH };
     document.body.style.cursor = 'row-resize';
     document.body.style.userSelect = 'none';
   }, [bottomH]);
 
   const quickOpenEntries = useMemo(() => listQuickOpenDemoFiles(), []);
+  const visibleExplorerFiles = useMemo(
+    () => collectVisibleFiles(DEMO_FILE_TREE, expandedDirs),
+    [expandedDirs],
+  );
 
   const { rows: problemRows, totalLines: problemTotalLines } = useMemo(
     () => problemRowsFromAgentError(agentError),
@@ -256,9 +334,100 @@ export function WebIdeWorkbench({
   const activeBuffer = buffers[activePath];
 
   useEffect(() => {
-    setCursorLine(1);
-    setCursorCol(1);
-  }, [activePath]);
+    if (bottomPanelInitedRef.current) {
+      return;
+    }
+    bottomPanelInitedRef.current = true;
+    const h = Math.round(window.innerHeight * 0.27);
+    setBottomH(Math.min(320, Math.max(120, h)));
+  }, []);
+
+  useEffect(() => {
+    setRecentCommandIds(loadRecentCommandIds());
+    const p = loadWorkbenchPersisted();
+    if (!p) return;
+    if (typeof p.sidebarOpen === 'boolean') setSidebarOpen(p.sidebarOpen);
+    if (typeof p.sidebarW === 'number' && p.sidebarW >= 180 && p.sidebarW <= 520) setSidebarW(p.sidebarW);
+    if (typeof p.composerW === 'number' && p.composerW >= 248 && p.composerW <= 360) setComposerW(p.composerW);
+    if (typeof p.bottomH === 'number' && p.bottomH >= 120 && p.bottomH <= 520) setBottomH(p.bottomH);
+    if (typeof p.bottomExpanded === 'boolean') setBottomExpanded(p.bottomExpanded);
+    if (p.activityView === 'explorer' || p.activityView === 'search' || p.activityView === 'scm') {
+      setActivityView(p.activityView);
+    }
+    if (Array.isArray(p.expandedDirs)) {
+      setExpandedDirs(new Set(p.expandedDirs.filter((x): x is string => typeof x === 'string')));
+    }
+
+    const canResolveTab = (path: string) => path === AGENT_STREAM_PATH || Boolean(DEMO_BUFFERS[path]);
+    if (Array.isArray(p.openTabs) && p.openTabs.length > 0) {
+      const tabs = p.openTabs.filter(canResolveTab);
+      if (tabs.length > 0) {
+        setBuffers((prev) => {
+          let next = { ...prev };
+          for (const tabPath of tabs) {
+            if (tabPath === AGENT_STREAM_PATH) continue;
+            const kb = DEMO_BUFFERS[tabPath];
+            if (kb && !next[tabPath]) {
+              next[tabPath] = {
+                path: tabPath,
+                name: kb.name,
+                language: kb.language,
+                content: kb.content,
+                isDirty: false,
+                pinned: false,
+              };
+            }
+          }
+          if (Array.isArray(p.pinnedPaths)) {
+            for (const pin of p.pinnedPaths) {
+              if (next[pin]) next[pin] = { ...next[pin], pinned: true };
+            }
+          }
+          return next;
+        });
+        setOpenTabs(tabs);
+        if (p.activePath && canResolveTab(p.activePath) && tabs.includes(p.activePath)) {
+          setActivePath(p.activePath);
+        }
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (persistTimerRef.current) clearTimeout(persistTimerRef.current);
+    persistTimerRef.current = setTimeout(() => {
+      const pinnedPaths = Object.entries(buffers)
+        .filter(([, b]) => b.pinned)
+        .map(([p]) => p);
+      const payload: WorkbenchPersisted = {
+        openTabs,
+        activePath,
+        sidebarOpen,
+        sidebarW,
+        composerW,
+        bottomH,
+        bottomExpanded,
+        activityView,
+        expandedDirs: [...expandedDirs],
+        pinnedPaths,
+      };
+      saveWorkbenchPersisted(payload);
+    }, 400);
+    return () => {
+      if (persistTimerRef.current) clearTimeout(persistTimerRef.current);
+    };
+  }, [
+    openTabs,
+    activePath,
+    sidebarOpen,
+    sidebarW,
+    composerW,
+    bottomH,
+    bottomExpanded,
+    activityView,
+    expandedDirs,
+    buffers,
+  ]);
 
   useEffect(() => {
     if (!activeBuffer) {
@@ -303,6 +472,7 @@ export function WebIdeWorkbench({
           language: 'markdown',
           content: doc,
           isDirty: false,
+          pinned: cur?.pinned ?? true,
         },
       };
     });
@@ -314,6 +484,17 @@ export function WebIdeWorkbench({
       setBottomTab('output');
     }
   }, [loading]);
+
+  useEffect(() => {
+    if (!loading || bottomTab !== 'output' || !bottomExpanded) {
+      return;
+    }
+    const el = bottomBodyRef.current;
+    if (!el) {
+      return;
+    }
+    el.scrollTop = el.scrollHeight;
+  }, [agentOutput, loading, bottomTab, bottomExpanded]);
 
   useEffect(() => {
     if (agentError && agentError !== prevAgentErrorRef.current) {
@@ -347,10 +528,43 @@ export function WebIdeWorkbench({
         return;
       }
 
+      if (mod && e.key.toLowerCase() === 'k' && !e.shiftKey && !e.altKey) {
+        e.preventDefault();
+        e.stopPropagation();
+        setQuickOpen(false);
+        setShortcutsOpen(false);
+        setGoToLineOpen(false);
+        setPaletteOpen(true);
+        return;
+      }
+
       if (paletteOpenRef.current) return;
       if (quickOpenRef.current) return;
       if (shortcutsOpenRef.current) return;
       if (goToLineOpenRef.current) return;
+
+      if (mod && e.key.toLowerCase() === 'w' && !e.shiftKey && !e.altKey) {
+        const t = activePathRef.current;
+        if (!t) return;
+        e.preventDefault();
+        e.stopPropagation();
+        closeTabRef.current(t);
+        return;
+      }
+
+      if (mod && e.key === 'Tab') {
+        const paths = openTabsRef.current;
+        if (paths.length < 2) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const i = paths.indexOf(activePathRef.current);
+        const idx = i < 0 ? 0 : i;
+        const next = e.shiftKey
+          ? paths[(idx - 1 + paths.length) % paths.length]
+          : paths[(idx + 1) % paths.length];
+        if (next) setActivePath(next);
+        return;
+      }
 
       if (zenModeRef.current && e.key === 'Escape') {
         e.preventDefault();
@@ -493,21 +707,72 @@ export function WebIdeWorkbench({
     });
   }, []);
 
+  const revealInExplorer = useCallback((path: string) => {
+    setActivityView('explorer');
+    setSidebarOpen(true);
+    const segments = path.split('/').filter(Boolean);
+    if (segments.length > 1) {
+      setExpandedDirs((prev) => {
+        const next = new Set(prev);
+        for (let i = 1; i < segments.length; i++) {
+          next.add(segments.slice(0, i).join('/'));
+        }
+        return next;
+      });
+    }
+  }, []);
+
+  const onExplorerFileContextMenu = useCallback(
+    (path: string, _name: string, e: ReactMouseEvent) => {
+      e.preventDefault();
+      setCtxMenu({
+        x: e.clientX,
+        y: e.clientY,
+        items: [
+          { id: 'ctx-nf', label: 'New File', disabled: true, onSelect: () => {} },
+          { id: 'ctx-nd', label: 'New Folder', disabled: true, onSelect: () => {} },
+          { id: 'ctx-rn', label: 'Rename', disabled: true, onSelect: () => {} },
+          { id: 'ctx-del', label: 'Delete', disabled: true, onSelect: () => {} },
+          {
+            id: 'ctx-rev',
+            label: 'Reveal in Explorer',
+            onSelect: () => {
+              revealInExplorer(path);
+              setSelectedExplorerPath(path);
+            },
+          },
+        ],
+      });
+    },
+    [revealInExplorer],
+  );
+
   const revealAgentStreamTab = useCallback(() => {
     setOpenTabs((prev) => (prev.includes(AGENT_STREAM_PATH) ? prev : [...prev, AGENT_STREAM_PATH]));
     setActivePath(AGENT_STREAM_PATH);
   }, []);
 
+  const pinTab = useCallback((path: string) => {
+    setBuffers((prev) => {
+      const b = prev[path];
+      if (!b || b.pinned) return prev;
+      return { ...prev, [path]: { ...b, pinned: true } };
+    });
+    setPreviewTabPath((pv) => (pv === path ? null : pv));
+  }, []);
+
   const openFile = useCallback(
-    (path: string, name: string) => {
+    (path: string, name: string, opts?: { newTab?: boolean }) => {
+      const newTab = Boolean(opts?.newTab);
       if (path === AGENT_STREAM_PATH) {
         revealAgentStreamTab();
         return;
       }
       const known = DEMO_BUFFERS[path];
+      if (!known) return;
+
       setBuffers((prev) => {
         if (prev[path]) return prev;
-        if (!known) return prev;
         return {
           ...prev,
           [path]: {
@@ -516,31 +781,115 @@ export function WebIdeWorkbench({
             language: known.language,
             content: known.content,
             isDirty: false,
+            pinned: newTab,
           },
         };
       });
-      setOpenTabs((prev) => (prev.includes(path) ? prev : [...prev, path]));
+
+      const prevTabs = openTabsRef.current;
+      const prevBufs = buffersRef.current;
+      if (prevTabs.includes(path)) {
+        setActivePath(path);
+        setSelectedExplorerPath(path);
+        return;
+      }
+
+      let nextTabs: string[];
+      let nextPreview: string | null;
+      if (newTab) {
+        nextTabs = [...prevTabs, path];
+        nextPreview = null;
+      } else {
+        const pv = previewTabPathRef.current;
+        const b = pv ? prevBufs[pv] : undefined;
+        const canReplace =
+          Boolean(pv) &&
+          prevTabs.includes(pv!) &&
+          Boolean(b) &&
+          !b!.pinned &&
+          !b!.isDirty &&
+          pv !== AGENT_STREAM_PATH;
+        if (canReplace && pv) {
+          const i = prevTabs.indexOf(pv);
+          nextTabs = [...prevTabs];
+          nextTabs[i] = path;
+          nextPreview = path;
+        } else {
+          nextTabs = [...prevTabs, path];
+          nextPreview = path;
+        }
+      }
+
+      setOpenTabs(nextTabs);
+      setPreviewTabPath(nextPreview);
       setActivePath(path);
+      setSelectedExplorerPath(path);
     },
     [revealAgentStreamTab],
   );
 
-  const closeTab = useCallback(
-    (path: string, e?: React.MouseEvent) => {
-      e?.stopPropagation();
-      setOpenTabs((prev) => {
-        if (prev.length <= 1) return prev;
-        const next = prev.filter((p) => p !== path);
-        if (activePath === path) {
-          const idx = prev.indexOf(path);
-          const fallback = next[Math.max(0, idx - 1)] ?? next[0] ?? '';
-          setActivePath(fallback);
-        }
-        return next;
+  const closeTab = useCallback((path: string, e?: ReactMouseEvent) => {
+    e?.stopPropagation();
+    if (openTabsRef.current.length <= 1) return;
+    if (previewTabPathRef.current === path) setPreviewTabPath(null);
+    setOpenTabs((prev) => {
+      if (prev.length <= 1) return prev;
+      const next = prev.filter((p) => p !== path);
+      if (activePathRef.current === path) {
+        const idx = prev.indexOf(path);
+        const fallback = next[Math.max(0, idx - 1)] ?? next[0] ?? '';
+        setActivePath(fallback);
+      }
+      return next;
+    });
+  }, []);
+
+  closeTabRef.current = closeTab;
+
+  const onTabContextMenu = useCallback(
+    (path: string, e: ReactMouseEvent) => {
+      e.preventDefault();
+      const buf = buffersRef.current[path];
+      setCtxMenu({
+        x: e.clientX,
+        y: e.clientY,
+        items: [
+          {
+            id: 'ctx-pin',
+            label: buf?.pinned ? 'Pinned' : 'Pin Tab',
+            disabled: Boolean(buf?.pinned),
+            onSelect: () => pinTab(path),
+          },
+          { id: 'ctx-close', label: 'Close', onSelect: () => closeTab(path) },
+          {
+            id: 'ctx-close-others',
+            label: 'Close Others',
+            onSelect: () => {
+              setPreviewTabPath(null);
+              setOpenTabs([path]);
+              setActivePath(path);
+            },
+          },
+          {
+            id: 'ctx-tab-rev',
+            label: 'Reveal in Explorer',
+            disabled: !DEMO_BUFFERS[path],
+            onSelect: () => {
+              if (DEMO_BUFFERS[path]) {
+                revealInExplorer(path);
+                setSelectedExplorerPath(path);
+              }
+            },
+          },
+        ],
       });
     },
-    [activePath],
+    [pinTab, closeTab, revealInExplorer],
   );
+
+  const onSaveViewState = useCallback((p: string, state: editor.ICodeEditorViewState | null) => {
+    viewStatesRef.current[p] = state;
+  }, []);
 
   const onEditorChange = useCallback(
     (value: string) => {
@@ -562,18 +911,43 @@ export function WebIdeWorkbench({
     document.querySelector<HTMLTextAreaElement>('[data-composer-mission]')?.focus();
   }, []);
 
+  const handleAfterPaletteRun = useCallback((id: string) => {
+    recordRecentCommandId(id);
+    setRecentCommandIds(loadRecentCommandIds());
+  }, []);
+
   const paletteItems = useMemo((): PaletteItem[] => {
     const items: PaletteItem[] = [
       {
         id: 'palette-quick-open',
         label: 'File: Quick Open',
         shortcut: accel('Ctrl+P'),
+        section: 'Files',
         onSelect: () => setQuickOpen(true),
+      },
+      {
+        id: 'palette-readme',
+        label: 'File: Open README.md',
+        section: 'Files',
+        onSelect: () => openFile(DEFAULT_OPEN_PATH, 'README.md'),
+      },
+      {
+        id: 'palette-plan',
+        label: 'File: Open PLAN.md',
+        section: 'Files',
+        onSelect: () => openFile('web-demo/PLAN.md', 'PLAN.md'),
+      },
+      {
+        id: 'palette-page',
+        label: 'File: Open dashboard page.tsx',
+        section: 'Files',
+        onSelect: () => openFile('web-demo/apps/web/dashboard/page.tsx', 'page.tsx'),
       },
       {
         id: 'palette-go-line',
         label: 'Editor: Go to Line',
         shortcut: accel('Ctrl+G'),
+        section: 'Editor',
         onSelect: () => {
           if (monacoEditorRef.current) setGoToLineOpen(true);
         },
@@ -582,6 +956,7 @@ export function WebIdeWorkbench({
         id: 'palette-find',
         label: 'Editor: Find',
         shortcut: accel('Ctrl+F'),
+        section: 'Editor',
         onSelect: () => {
           const ed = monacoEditorRef.current;
           if (!ed) return;
@@ -593,6 +968,7 @@ export function WebIdeWorkbench({
         id: 'palette-replace',
         label: 'Editor: Replace',
         shortcut: accel('Ctrl+H'),
+        section: 'Editor',
         onSelect: () => {
           const ed = monacoEditorRef.current;
           if (!ed) return;
@@ -601,33 +977,31 @@ export function WebIdeWorkbench({
         },
       },
       {
-        id: 'palette-shortcuts',
-        label: 'Help: Keyboard Shortcuts',
-        shortcut: accel('Ctrl+Shift+/'),
-        onSelect: () => setShortcutsOpen(true),
+        id: 'palette-zoom-reset',
+        label: 'Editor: Reset zoom',
+        shortcut: accel('Ctrl+0'),
+        section: 'Editor',
+        onSelect: () => void monacoEditorRef.current?.getAction('editor.action.fontZoomReset')?.run(),
       },
       {
         id: 'palette-zen',
         label: 'View: Toggle Zen Mode',
         shortcut: accel('Ctrl+Alt+Z'),
+        section: 'View',
         detail: 'Hide chrome — Esc to exit',
         onSelect: () => setZenMode((z) => !z),
-      },
-      {
-        id: 'palette-zoom-reset',
-        label: 'Editor: Reset zoom',
-        shortcut: accel('Ctrl+0'),
-        onSelect: () => void monacoEditorRef.current?.getAction('editor.action.fontZoomReset')?.run(),
       },
       {
         id: 'palette-minimap',
         label: 'View: Toggle Minimap',
         shortcut: accel('Ctrl+Alt+M'),
+        section: 'View',
         onSelect: () => setMinimapEnabled((v) => !v),
       },
       {
         id: 'palette-problems',
         label: 'View: Show Problems',
+        section: 'View',
         detail: 'Agent / API errors',
         onSelect: () => {
           setBottomExpanded(true);
@@ -638,17 +1012,20 @@ export function WebIdeWorkbench({
         id: 'palette-sidebar',
         label: 'View: Toggle Primary Side Bar',
         shortcut: accel('Ctrl+B'),
+        section: 'View',
         onSelect: () => setSidebarOpen((v) => !v),
       },
       {
         id: 'palette-panel',
         label: 'View: Toggle Panel',
         shortcut: accel('Ctrl+`'),
+        section: 'View',
         onSelect: () => setBottomExpanded((v) => !v),
       },
       {
         id: 'palette-output-tab',
         label: 'View: Show Output',
+        section: 'View',
         detail: 'Bottom panel',
         onSelect: () => {
           setBottomExpanded(true);
@@ -658,32 +1035,13 @@ export function WebIdeWorkbench({
       {
         id: 'palette-composer',
         label: 'View: Focus Composer',
+        section: 'View',
         onSelect: () => focusComposer(),
-      },
-      {
-        id: 'palette-agent-tab',
-        label: 'View: Open Agent stream',
-        detail: AGENT_STREAM_PATH,
-        onSelect: () => revealAgentStreamTab(),
-      },
-      {
-        id: 'palette-readme',
-        label: 'File: Open README.md',
-        onSelect: () => openFile(DEFAULT_OPEN_PATH, 'README.md'),
-      },
-      {
-        id: 'palette-plan',
-        label: 'File: Open PLAN.md',
-        onSelect: () => openFile('web-demo/PLAN.md', 'PLAN.md'),
-      },
-      {
-        id: 'palette-page',
-        label: 'File: Open dashboard page.tsx',
-        onSelect: () => openFile('web-demo/apps/web/dashboard/page.tsx', 'page.tsx'),
       },
       {
         id: 'palette-explorer',
         label: 'View: Show Explorer',
+        section: 'View',
         onSelect: () => {
           setActivityView('explorer');
           setSidebarOpen(true);
@@ -692,14 +1050,30 @@ export function WebIdeWorkbench({
       {
         id: 'palette-search',
         label: 'View: Show Search',
+        section: 'View',
         onSelect: () => {
           setActivityView('search');
           setSidebarOpen(true);
         },
       },
       {
+        id: 'palette-agent-tab',
+        label: 'View: Open Agent stream',
+        section: 'View',
+        detail: AGENT_STREAM_PATH,
+        onSelect: () => revealAgentStreamTab(),
+      },
+      {
+        id: 'palette-shortcuts',
+        label: 'Help: Keyboard Shortcuts',
+        shortcut: accel('Ctrl+Shift+/'),
+        section: 'Help',
+        onSelect: () => setShortcutsOpen(true),
+      },
+      {
         id: 'palette-signin',
         label: 'Account: Open sign in',
+        section: 'Account',
         onSelect: () => void router.push('/sign-in'),
       },
     ];
@@ -707,6 +1081,7 @@ export function WebIdeWorkbench({
       items.push({
         id: 'palette-clear-agent',
         label: 'Agent: Clear output and errors',
+        section: 'Agent',
         onSelect: () => onClearAgentOutput(),
       });
     }
@@ -731,11 +1106,22 @@ export function WebIdeWorkbench({
     [openTabs, activePath],
   );
 
-  const statusLabel = useMemo(() => {
-    if (loading) return '◐ Web agent streaming…';
-    if (agentError) return '✗ Request error';
-    if (agentOutput.trim()) return '✓ Output ready';
-    return '● Ready';
+  const statusLabel = useMemo((): ReactNode => {
+    if (loading) {
+      return (
+        <span className="wb-status-stream">
+          <span className="wb-status-stream-text">Web agent</span>
+          <span className="wb-status-stream-dots" aria-hidden>
+            <span />
+            <span />
+            <span />
+          </span>
+        </span>
+      );
+    }
+    if (agentError) return 'Request error';
+    if (agentOutput.trim()) return 'Output ready';
+    return 'Ready';
   }, [loading, agentError, agentOutput]);
 
   const goSignIn = useCallback(() => {
@@ -743,7 +1129,7 @@ export function WebIdeWorkbench({
   }, [router]);
 
   return (
-    <div className={`wb-app${zenMode ? ' wb-app-zen' : ''}`}>
+    <div className={`wb-app${zenMode ? ' wb-app-zen' : ''}${layoutDragging ? ' wb-app-layout-drag' : ''}`}>
       <div className="wb-body">
         <nav className="wb-activity-bar" role="toolbar" aria-label="Side bar views">
           <div className="wb-activity-top">
@@ -827,16 +1213,26 @@ export function WebIdeWorkbench({
           </div>
         </nav>
 
-        {sidebarOpen ? (
-          <>
-            <aside
-              className="wb-sidebar"
-              style={{ width: sidebarW }}
-              role="complementary"
-              aria-label={
-                activityView === 'explorer' ? 'Explorer' : activityView === 'search' ? 'Search' : 'Source control'
-              }
-            >
+        <div
+          className="wb-sidebar-shell"
+          style={{
+            width: sidebarOpen ? sidebarW + 4 : 0,
+            transition: layoutDragging ? 'none' : 'width 120ms ease-out',
+            overflow: 'hidden',
+            display: 'flex',
+            flexShrink: 0,
+            minWidth: 0,
+          }}
+          aria-hidden={!sidebarOpen}
+        >
+          <aside
+            className="wb-sidebar"
+            style={{ width: sidebarW, minWidth: sidebarW, flexShrink: 0 }}
+            role="complementary"
+            aria-label={
+              activityView === 'explorer' ? 'Explorer' : activityView === 'search' ? 'Search' : 'Source control'
+            }
+          >
               {activityView === 'explorer' ? (
                 <div className="wb-file-tree">
                   <div className="wb-sidebar-view-header">
@@ -876,7 +1272,10 @@ export function WebIdeWorkbench({
                               <button
                                 type="button"
                                 className="wb-open-editor-main"
-                                onClick={() => setActivePath(path)}
+                                onClick={() => {
+                                  setActivePath(path);
+                                  if (DEMO_BUFFERS[path]) setSelectedExplorerPath(path);
+                                }}
                               >
                                 <span className="wb-open-editor-icon" aria-hidden>
                                   <IconFile />
@@ -901,14 +1300,44 @@ export function WebIdeWorkbench({
                       })}
                     </ul>
                   </div>
-                  <div className="wb-file-tree-scroll">
+                  <div
+                    className="wb-file-tree-scroll"
+                    ref={explorerTreeRef}
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (activityView !== 'explorer') return;
+                      const list = visibleExplorerFiles;
+                      if (list.length === 0) return;
+                      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        let idx = list.findIndex((f) => f.path === selectedExplorerPath);
+                        if (idx < 0) idx = 0;
+                        else
+                          idx =
+                            e.key === 'ArrowDown'
+                              ? Math.min(list.length - 1, idx + 1)
+                              : Math.max(0, idx - 1);
+                        const row = list[idx];
+                        if (row) setSelectedExplorerPath(row.path);
+                        return;
+                      }
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const row = list.find((f) => f.path === selectedExplorerPath) ?? list[0];
+                        if (row) openFile(row.path, row.name);
+                      }
+                    }}
+                  >
                     <DemoTree
                       nodes={DEMO_FILE_TREE}
                       depth={0}
                       expanded={expandedDirs}
                       toggleDir={toggleDir}
                       activeFile={activePath}
+                      selectedFile={selectedExplorerPath}
+                      onFileSelect={(path, _name) => setSelectedExplorerPath(path)}
                       onFileOpen={openFile}
+                      onFileContextMenu={onExplorerFileContextMenu}
                     />
                   </div>
                 </div>
@@ -952,22 +1381,18 @@ export function WebIdeWorkbench({
                       </button>
                     </div>
                   </div>
-                  <p className="wb-scm-hint">
-                    Git staging, diffs, and commits run in the <strong>desktop</strong> app. This web shell is for agent
-                    runs and planning.
-                  </p>
+                  <p className="wb-scm-hint">Source control is not available in this shell.</p>
                 </div>
               )}
             </aside>
-            <div
-              className="wb-resize-v"
-              role="separator"
-              aria-orientation="vertical"
-              aria-label="Resize side bar"
-              onMouseDown={beginSidebarResize}
-            />
-          </>
-        ) : null}
+          <div
+            className="wb-resize-v wb-resize-v-sidebar"
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize side bar"
+            onMouseDown={beginSidebarResize}
+          />
+        </div>
 
         <div className="wb-main" role="main">
           <div
@@ -980,14 +1405,29 @@ export function WebIdeWorkbench({
               const buf = buffers[path];
               const label = buf?.name ?? path;
               const dirty = buf?.isDirty ? '● ' : '';
+              const isPreview = Boolean(previewTabPath === path && !buf?.pinned);
               return (
                 <div
                   key={path}
                   role="tab"
                   tabIndex={path === activePath ? 0 : -1}
                   aria-selected={path === activePath}
-                  className={`wb-tab ${path === activePath ? 'wb-tab-active' : ''}`}
-                  onClick={() => setActivePath(path)}
+                  className={`wb-tab ${path === activePath ? 'wb-tab-active' : ''}${isPreview ? ' wb-tab-preview' : ''}`}
+                  onClick={() => {
+                    setActivePath(path);
+                    if (DEMO_BUFFERS[path]) setSelectedExplorerPath(path);
+                  }}
+                  onDoubleClick={(ev) => {
+                    ev.preventDefault();
+                    pinTab(path);
+                  }}
+                  onAuxClick={(ev) => {
+                    if (ev.button === 1) {
+                      ev.preventDefault();
+                      closeTab(path, ev);
+                    }
+                  }}
+                  onContextMenu={(ev) => onTabContextMenu(path, ev)}
                 >
                   <span className="wb-tab-file-icon" aria-hidden>
                     <IconFile />
@@ -1021,14 +1461,18 @@ export function WebIdeWorkbench({
                   value={activeBuffer.content}
                   readOnly={activeBuffer.path === AGENT_STREAM_PATH}
                   minimapEnabled={minimapEnabled}
+                  savedViewState={viewStatesRef.current[activeBuffer.path] ?? null}
+                  onSaveViewState={onSaveViewState}
                   onChange={onEditorChange}
                   onEditorReady={onMonacoReady}
                   onCursorPositionChange={onCursorPositionChange}
                 />
               ) : (
                 <div className="wb-welcome">
-                  <h1>Auto-Coder</h1>
-                  <p>Open a file from the Explorer to get started.</p>
+                  <p className="wb-welcome-lead">No editor open</p>
+                  <p className="wb-welcome-hint muted">
+                    {accel('Ctrl+P')} · {accel('Ctrl+K')}
+                  </p>
                 </div>
               )}
             </div>
@@ -1046,7 +1490,7 @@ export function WebIdeWorkbench({
             {bottomExpanded ? (
               <div
                 className="wb-bottom"
-                style={{ flex: `0 0 ${bottomH}px`, minHeight: 120, maxHeight: 'min(50vh, 520px)' }}
+                style={{ flex: `0 0 ${bottomH}px`, minHeight: 96, maxHeight: 'min(50vh, 480px)' }}
                 role="region"
                 aria-label="Panel"
               >
@@ -1087,18 +1531,14 @@ export function WebIdeWorkbench({
                     ▾
                   </button>
                 </div>
-                <div className="wb-bottom-body">
+                <div className="wb-bottom-body" ref={bottomBodyRef}>
                   {bottomTab === 'output' ? (
                     <>
                       {agentError ? <div className="wb-output-error">{agentError}</div> : null}
                       {agentOutput ? (
                         <pre className="wb-output-pre">{agentOutput}</pre>
                       ) : (
-                        <p className="wb-output-empty">
-                          {loading
-                            ? 'Streaming agent response…'
-                            : 'Run Composer to stream agent output here (same channel as desktop).'}
-                        </p>
+                        <p className="wb-output-empty">{loading ? 'Receiving…' : 'No output.'}</p>
                       )}
                     </>
                   ) : bottomTab === 'problems' ? (
@@ -1113,7 +1553,7 @@ export function WebIdeWorkbench({
                               <div className="wb-problem-body">
                                 <div className="wb-problem-msg">{msg}</div>
                                 {i === 0 ? (
-                                  <div className="wb-problem-src">Composer · POST /api/agent</div>
+                                  <div className="wb-problem-src">agent</div>
                                 ) : null}
                               </div>
                             </li>
@@ -1125,10 +1565,7 @@ export function WebIdeWorkbench({
                     </div>
                   ) : (
                     <div className="wb-terminal-placeholder">
-                      <p>
-                        Integrated terminal runs in the <strong>desktop</strong> app (node-pty + xterm). On the web,
-                        use your system terminal against the same repo.
-                      </p>
+                      <p>No integrated terminal.</p>
                     </div>
                   )}
                 </div>
@@ -1232,12 +1669,18 @@ export function WebIdeWorkbench({
         </div>
       </footer>
 
-      <WebCommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} items={paletteItems} />
+      <WebCommandPalette
+        open={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        items={paletteItems}
+        recentIds={recentCommandIds}
+        onAfterRun={handleAfterPaletteRun}
+      />
       <WebQuickOpen
         open={quickOpen}
         onClose={() => setQuickOpen(false)}
         entries={quickOpenEntries}
-        onPick={(path, name) => openFile(path, name)}
+        onPick={(path, name, opts) => openFile(path, name, { newTab: Boolean(opts?.openInNewTab) })}
       />
       <WebKeyboardShortcutsModal open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
       <WebGoToLine
@@ -1252,6 +1695,13 @@ export function WebIdeWorkbench({
           Exit zen · Esc
         </button>
       ) : null}
+      <WebContextMenu
+        open={Boolean(ctxMenu)}
+        x={ctxMenu?.x ?? 0}
+        y={ctxMenu?.y ?? 0}
+        items={ctxMenu?.items ?? []}
+        onClose={() => setCtxMenu(null)}
+      />
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 /** Minimal VS Code–style strokes (not full codicons) for the activity bar. */
 
-const S = { width: 22, height: 22, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.6 } as const;
+const S = { width: 16, height: 16, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.45 } as const;
 
 export function IconExplorer() {
   return (
@@ -76,7 +76,7 @@ export function IconSettings() {
 
 export function IconFile() {
   return (
-    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} aria-hidden>
+    <svg {...S} aria-hidden>
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z" strokeLinejoin="round" />
       <path d="M14 2v6h6" strokeLinejoin="round" />
     </svg>
@@ -85,7 +85,7 @@ export function IconFile() {
 
 export function IconFolder() {
   return (
-    <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} aria-hidden>
+    <svg {...S} aria-hidden>
       <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" strokeLinejoin="round" />
     </svg>
   );

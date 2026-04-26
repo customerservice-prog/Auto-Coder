@@ -13,6 +13,43 @@
   --yellow: #d29922;
 }
 
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: geometricPrecision;
+}
+
+/* Thin scrollbars — consistent app-wide */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.22);
+  background-clip: padding-box;
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 html, body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
 
 /* NAV */
@@ -211,15 +248,18 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
   --ide-border: #27272a;
   --ide-muted: #71717a;
   --ide-fg: #fafafa;
-  --ide-accent: #f97316;
-  --ide-accent-soft: rgba(249, 115, 22, 0.15);
-  --ide-focus: #38bdf8;
+  /* Neutral tool chrome — single blue for focus / primary action only */
+  --ide-accent: #007fd4;
+  --ide-accent-soft: rgba(0, 127, 212, 0.14);
+  --ide-focus: #007fd4;
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
   background: var(--ide-bg);
   color: var(--ide-fg);
-  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 .ide-titlebar {
@@ -254,18 +294,18 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
 }
 
 .ide-brand-mark {
-  width: 18px;
-  height: 18px;
-  border-radius: 4px;
-  background: linear-gradient(135deg, var(--ide-accent), #fb923c);
-  box-shadow: 0 0 12px var(--ide-accent-soft);
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  background: var(--ide-elevated);
+  border: 1px solid var(--ide-border);
+  box-shadow: none;
 }
 
 .ide-brand-text {
-  background: linear-gradient(90deg, #fafafa, #a1a1aa);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  color: rgba(250, 250, 250, 0.88);
+  -webkit-text-fill-color: unset;
+  background: none;
 }
 
 .ide-titlebar-sep {
@@ -301,7 +341,7 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
 }
 
 .ide-titlebar-right .ide-local-home:hover {
-  color: var(--ide-focus);
+  color: var(--ide-fg);
 }
 
 .ide-dev-strip {
@@ -310,18 +350,18 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
   padding: 8px 14px;
   font-size: 12px;
   line-height: 1.5;
-  color: #fde68a;
-  background: rgba(234, 179, 8, 0.12);
-  border-bottom: 1px solid rgba(234, 179, 8, 0.25);
+  color: var(--ide-muted);
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid var(--ide-border);
 }
 
 .ide-code-inline {
   font-family: ui-monospace, 'Cascadia Code', 'SF Mono', Menlo, monospace;
-  font-size: 11px;
+  font-size: 12px;
   padding: 1px 6px;
   border-radius: 4px;
   background: var(--ide-elevated);
-  color: #fde68a;
+  color: var(--ide-muted);
 }
 
 .ide-checkout-banner {
@@ -538,18 +578,19 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
   align-self: stretch;
   margin-top: 4px;
   padding: 10px 16px;
-  border: none;
+  border: 1px solid rgba(0, 127, 212, 0.45);
   border-radius: 8px;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  color: #0c0c0e;
-  background: linear-gradient(135deg, #fb923c, var(--ide-accent));
-  transition: filter 0.15s, opacity 0.15s;
+  color: #fafafa;
+  background: var(--ide-accent);
+  transition: opacity 0.08s ease-out, background-color 0.08s ease-out;
 }
 
 .ide-submit:hover:not(:disabled) {
-  filter: brightness(1.06);
+  filter: none;
+  background: #1c8ad9;
 }
 
 .ide-submit:disabled {
@@ -593,40 +634,59 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
 }
 
 .web-dash-root {
+  /* Cursor-like density: dark neutrals + rgba text (workbench overrides below) */
+  --wb-editor: #1e1e1e;
+  --wb-chrome: #1c1c1c;
+  --wb-tabs-bar: #1b1b1b;
+  --wb-tab-inactive: #181818;
+  --wb-side: #181818;
+  --wb-side-raised: #1b1b1b;
+  --wb-side-deep: #141414;
+  --wb-panel: #1a1a1a;
+  --wb-border: rgba(255, 255, 255, 0.06);
+  --wb-border-strong: rgba(255, 255, 255, 0.06);
+  --wb-tab-active-top: #007fd4;
+  --wb-activity-indicator: rgba(255, 255, 255, 0.42);
+  --wb-text-1: rgba(255, 255, 255, 0.88);
+  --wb-text-2: rgba(255, 255, 255, 0.55);
+  --wb-text-3: rgba(255, 255, 255, 0.35);
+  --wb-hover: rgba(255, 255, 255, 0.04);
+  --wb-hover-strong: rgba(255, 255, 255, 0.05);
+  --wb-list-active: rgba(255, 255, 255, 0.065);
+  --wb-list-active-tint: rgba(0, 127, 212, 0.14);
+  --wb-status-bg: #181818;
+  --wb-font-ui: 13px;
+  --wb-font-meta: 12px;
+  --wb-font-small: 11px;
+  --wb-leading-ui: 1.45;
+  /* Motion — near-instant feedback */
+  --wb-ease-out: ease-out;
+  --wb-t-hover: 0ms;
+  --wb-t-press: 0ms;
+  --wb-t-panel: 120ms;
   --ide-bg: #09090b;
   --ide-panel: #0c0c0e;
   --ide-elevated: #141416;
   --ide-border: #27272a;
   --ide-muted: #71717a;
   --ide-fg: #fafafa;
-  --ide-accent: #f97316;
-  --ide-focus: #38bdf8;
+  --ide-accent: #007fd4;
+  --ide-focus: #007fd4;
   min-height: 100dvh;
   height: 100dvh;
   max-height: 100dvh;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  background: #1e1e1e;
-  color: #cccccc;
-  font-size: 13px;
+  background: var(--wb-editor);
+  color: var(--wb-text-2);
+  font-size: var(--wb-font-meta);
+  line-height: var(--wb-leading-ui);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
 }
 
 .web-dash-root .ide-brand-mark {
   box-shadow: none;
-}
-
-.web-dash-root .ide-dev-strip {
-  color: #cca700;
-  background: rgba(255, 193, 7, 0.08);
-  border-bottom-color: rgba(255, 193, 7, 0.2);
-  font-size: 11px;
-}
-
-.web-dash-root .ide-titlebar {
-  background: #252526;
-  border-bottom-color: #3c3c3c;
 }
 
 .wb-composer {
@@ -636,18 +696,19 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
   --ide-border: #27272a;
   --ide-muted: #71717a;
   --ide-fg: #fafafa;
-  --ide-accent: #f97316;
-  --ide-focus: #38bdf8;
+  --ide-accent: #007fd4;
+  --ide-focus: #007fd4;
   display: flex;
   flex-direction: column;
   min-height: 0;
   min-width: 280px;
   max-width: 640px;
   flex-shrink: 0;
-  border-left: 1px solid #3c3c3c;
+  border-left: 1px solid rgba(255, 255, 255, 0.06);
   overflow: hidden;
   background: #252526;
   color: var(--ide-fg);
+  font-size: var(--wb-font-ui, 13px);
 }
 
 .wb-composer .ide-sidebar-header {
@@ -999,6 +1060,10 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
   color: #58a6ff;
 }
 
+.wb-tree-file.wb-tree-selected:not(.wb-tree-active) {
+  background: rgba(255, 255, 255, 0.05);
+}
+
 .wb-tree-chevron {
   width: 12px;
   font-size: 10px;
@@ -1248,6 +1313,11 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
   border-top: 1px solid #007fd4;
 }
 
+.wb-tab-preview .wb-tab-name {
+  font-style: italic;
+  opacity: 0.9;
+}
+
 .wb-tab:focus-visible {
   outline: 1px solid #007fd4;
   outline-offset: -1px;
@@ -1326,6 +1396,21 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
   color: #9d9d9d;
   text-align: center;
   padding: 24px;
+}
+
+.wb-welcome-lead {
+  font-size: 13px;
+  color: #858585;
+  margin: 0 0 6px 0;
+}
+
+.wb-welcome-hint {
+  font-size: 12px;
+  margin: 0;
+}
+
+.wb-welcome-hint.muted {
+  color: #6e6e6e;
 }
 
 .wb-welcome h1 {
@@ -1800,6 +1885,61 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
   font-family: ui-monospace, Menlo, monospace;
 }
 
+.wb-palette-section {
+  list-style: none;
+  padding: 5px 12px 3px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.38);
+  pointer-events: none;
+}
+
+.wb-ctx-menu {
+  position: fixed;
+  z-index: 20000;
+  min-width: 160px;
+  max-width: 280px;
+  padding: 2px 0;
+  background: #1b1b1b;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45);
+}
+
+.wb-ctx-item {
+  display: block;
+  width: 100%;
+  padding: 4px 14px;
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.wb-ctx-item:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+
+.wb-ctx-item:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.web-dash-root .wb-palette-item:hover,
+.web-dash-root .wb-palette-item-active {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.web-dash-root .wb-palette-hint {
+  display: none;
+}
+
 .wb-shortcuts-panel {
   position: relative;
   z-index: 1;
@@ -1939,6 +2079,1286 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
 .wb-zen-exit:focus-visible {
   outline: 2px solid #fff;
   outline-offset: 2px;
+}
+
+/* -----------------------------------------------------------------------------
+   Web dashboard — Cursor / VS Code visual parity (scoped to .web-dash-root)
+   ----------------------------------------------------------------------------- */
+
+/* One continuous canvas: hairlines only, no card chrome */
+.web-dash-root .ide-titlebar.wb-chrome,
+.web-dash-root .wb-activity-bar,
+.web-dash-root .wb-activity-btn,
+.web-dash-root .wb-sidebar,
+.web-dash-root .wb-main,
+.web-dash-root .wb-composer,
+.web-dash-root .wb-composer-chrome,
+.web-dash-root .wb-composer-stack,
+.web-dash-root .wb-composer-sec,
+.web-dash-root .wb-tab-bar,
+.web-dash-root .wb-tab,
+.web-dash-root .wb-bottom,
+.web-dash-root .wb-bottom-tabs,
+.web-dash-root .wb-bottom-tab,
+.web-dash-root .wb-bottom-body,
+.web-dash-root .wb-status-bar,
+.web-dash-root .wb-resize-v,
+.web-dash-root .wb-resize-h,
+.web-dash-root .wb-bottom-restore,
+.web-dash-root .wb-editor-host,
+.web-dash-root .wb-monaco-root,
+.web-dash-root .wb-sidebar-icon-btn,
+.web-dash-root .wb-tab-close,
+.web-dash-root .wb-open-editor-row,
+.web-dash-root .wb-tree-row,
+.web-dash-root .wb-composer-submit,
+.web-dash-root .wb-composer-model,
+.web-dash-root .wb-composer-field,
+.web-dash-root .ide-toolbar-btn,
+.web-dash-root .wb-output-error {
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.web-dash-root .ide-titlebar.wb-chrome {
+  height: 28px;
+  padding: 0 4px 0 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: stretch;
+  column-gap: 4px;
+  background: var(--wb-chrome);
+  border-bottom: 1px solid var(--wb-border);
+  font-size: 11px;
+}
+
+.web-dash-root .wb-chrome-left {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+  padding-left: 2px;
+}
+
+.web-dash-root .wb-menubar {
+  display: flex;
+  align-items: stretch;
+  flex-wrap: nowrap;
+  gap: 0;
+  overflow: hidden;
+  mask-image: linear-gradient(to right, #000 96%, transparent 100%);
+}
+
+.web-dash-root .wb-menu-item {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 4px;
+  font-size: 11px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.28);
+  user-select: none;
+  cursor: default;
+}
+
+.web-dash-root .wb-menu-item:hover {
+  color: var(--wb-text-3);
+  background: var(--wb-hover);
+}
+
+.web-dash-root .wb-chrome-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.web-dash-root .wb-app-title {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--wb-text-3);
+  text-decoration: none;
+  letter-spacing: 0.01em;
+}
+
+.web-dash-root .wb-app-title:hover {
+  color: var(--wb-text-2);
+}
+
+.web-dash-root .wb-chrome-right,
+.web-dash-root .ide-titlebar-right {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 0;
+}
+
+.web-dash-root .ide-toolbar-btn {
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 2px;
+  font-weight: 400;
+  color: var(--wb-text-3);
+  background: transparent;
+  border: 1px solid var(--wb-border);
+}
+
+.web-dash-root .ide-toolbar-btn:hover {
+  color: var(--wb-text-2);
+  background: var(--wb-hover);
+}
+
+.web-dash-root .dash-plan-badge {
+  font-size: 9px;
+  padding: 1px 6px;
+  font-weight: 500;
+  border-radius: 0;
+}
+
+.web-dash-root .ide-dev-strip.wb-env-notice,
+.web-dash-root .ide-dev-strip {
+  margin: 0;
+  padding: 2px 8px;
+  font-size: 10px;
+  line-height: 1.35;
+  font-weight: 400;
+  color: #b89f3b;
+  background: rgba(184, 159, 59, 0.06);
+  border-bottom: 1px solid rgba(184, 159, 59, 0.14);
+}
+
+.web-dash-root .ide-dev-strip .ide-code-inline {
+  font-size: 10px;
+  padding: 0 4px;
+  color: #c9b456;
+  background: rgba(0, 0, 0, 0.28);
+}
+
+.web-dash-root .ide-checkout-banner {
+  padding: 4px 8px;
+  font-size: 11px;
+  margin: 0;
+}
+
+.web-dash-root .wb-activity-bar {
+  width: 46px;
+  max-width: 46px;
+  padding: 1px 0 2px;
+  background: var(--wb-side);
+  border-right: 1px solid var(--wb-border);
+}
+
+.web-dash-root .wb-activity-btn {
+  width: 100%;
+  max-width: 46px;
+  height: 34px;
+  border-radius: 0;
+  border-left: 2px solid transparent;
+  color: var(--wb-text-3);
+}
+
+.web-dash-root .wb-activity-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.6;
+  transition: opacity var(--wb-t-hover) var(--wb-ease-out);
+}
+
+.web-dash-root .wb-activity-btn:hover:not(:disabled) {
+  background: var(--wb-hover);
+}
+
+.web-dash-root .wb-activity-btn:hover:not(:disabled) .wb-activity-icon {
+  opacity: 0.85;
+}
+
+.web-dash-root .wb-activity-btn-active {
+  background: transparent;
+  border-left-color: var(--wb-activity-indicator);
+}
+
+.web-dash-root .wb-activity-btn-active .wb-activity-icon {
+  opacity: 1;
+}
+
+.web-dash-root .wb-activity-btn:focus-visible {
+  outline: 1px solid var(--wb-border);
+  outline-offset: -1px;
+}
+
+.web-dash-root .wb-composer {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--wb-side);
+  border-left: 1px solid var(--wb-border);
+  min-width: 248px;
+  max-width: 360px;
+}
+
+.web-dash-root .wb-composer-chrome {
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--wb-border);
+  background: var(--wb-side);
+}
+
+.web-dash-root .wb-composer-headrow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 5px;
+  min-height: 0;
+}
+
+.web-dash-root .wb-composer-path {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+  font-size: 10px;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  color: var(--wb-text-3);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.web-dash-root .wb-composer-bc-sep {
+  opacity: 0.4;
+  user-select: none;
+}
+
+.web-dash-root .wb-composer-bc-cur {
+  color: var(--wb-text-2);
+}
+
+.web-dash-root .wb-composer-model {
+  flex-shrink: 0;
+  width: auto;
+  min-width: 108px;
+  max-width: 46%;
+  padding: 1px 4px;
+  font-size: 10px;
+  line-height: 1.35;
+  border: 1px solid var(--wb-border);
+  background: var(--wb-side-deep);
+  color: var(--wb-text-2);
+  font-family: inherit;
+  cursor: pointer;
+  appearance: none;
+}
+
+.web-dash-root .wb-composer-model:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.1);
+  color: var(--wb-text-1);
+}
+
+.web-dash-root .wb-composer-model:disabled {
+  opacity: 0.35;
+}
+
+.web-dash-root .wb-composer-micro-inline {
+  margin: 0;
+  padding: 2px 5px 3px;
+  font-size: 10px;
+  line-height: 1.3;
+  color: var(--wb-text-3);
+}
+
+.web-dash-root .wb-composer-micro-muted {
+  color: var(--wb-text-3);
+}
+
+.web-dash-root .wb-composer-code {
+  font-size: 10px;
+  padding: 0 2px;
+  color: var(--wb-text-2);
+  background: rgba(0, 0, 0, 0.35);
+  border: none;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+}
+
+.web-dash-root .wb-composer-stack-flat {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
+  background: var(--wb-side);
+}
+
+.web-dash-root .wb-composer-sec {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+  padding: 3px 5px 4px;
+  border-bottom: 1px solid var(--wb-border);
+}
+
+.web-dash-root .wb-composer-sec-grow {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-height: 0;
+  background: var(--wb-editor);
+}
+
+.web-dash-root .wb-composer-sec-label {
+  display: block;
+  font-size: 10px;
+  line-height: 1.2;
+  font-weight: 400;
+  color: var(--wb-text-3);
+  padding: 0 1px 2px;
+}
+
+.web-dash-root .wb-composer-field {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  border: 1px solid var(--wb-border);
+  background: var(--wb-side-deep);
+  color: var(--wb-text-1);
+  font-size: 11px;
+  line-height: 1.35;
+  resize: none;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+}
+
+.web-dash-root .wb-composer-field:focus {
+  outline: none;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.web-dash-root .wb-composer-field:disabled {
+  opacity: 0.35;
+}
+
+.web-dash-root .wb-composer-context {
+  min-height: 36px;
+  max-height: 56px;
+  padding: 3px 4px;
+}
+
+.web-dash-root .wb-composer-mission {
+  flex: 1 1 0;
+  min-height: 96px;
+  padding: 4px 5px;
+  background: #141414;
+  border: 1px solid var(--wb-border);
+  line-height: 1.38;
+}
+
+.web-dash-root .wb-composer-sendbar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding: 3px 5px 4px;
+  border-bottom: 1px solid var(--wb-border);
+  background: var(--wb-side);
+}
+
+.web-dash-root .wb-composer-submit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 22px;
+  padding: 0 6px;
+  border: 1px solid var(--wb-border);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--wb-text-3);
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.web-dash-root .wb-composer-submit:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--wb-text-2);
+}
+
+.web-dash-root .wb-composer-submit:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.web-dash-root .wb-composer-submit-glyph {
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.web-dash-root .wb-composer-submit-text {
+  font-size: 10px;
+  font-weight: 400;
+}
+
+.web-dash-root .wb-composer-quota {
+  font-size: 10px;
+  margin: 0;
+  padding: 0 5px 4px;
+  color: var(--wb-text-3);
+  line-height: 1.25;
+  background: var(--wb-side);
+}
+
+.web-dash-root .wb-sidebar {
+  background: var(--wb-side);
+  border-right: 1px solid var(--wb-border);
+}
+
+.web-dash-root .wb-sidebar-view-header {
+  min-height: 26px;
+  padding: 0 6px;
+  border-bottom: 1px solid var(--wb-border);
+}
+
+.web-dash-root .wb-sidebar-heading {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--wb-text-3);
+}
+
+.web-dash-root .wb-file-tree-header {
+  padding: 5px 6px 6px;
+  border-bottom: 1px solid var(--wb-border);
+}
+
+.web-dash-root .wb-project-name {
+  font-size: 10px;
+  color: var(--wb-text-3);
+}
+
+.web-dash-root .wb-open-editors-label {
+  padding: 3px 6px 1px;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+
+.web-dash-root .wb-open-editor-row {
+  border-radius: 0;
+}
+
+.web-dash-root .wb-open-editor-row:focus-within {
+  outline: 1px solid rgba(255, 255, 255, 0.08);
+  outline-offset: -1px;
+}
+
+.web-dash-root .wb-open-editor-main {
+  padding: 2px 4px 2px 5px;
+}
+
+.web-dash-root .wb-open-editor-name {
+  font-size: 11px;
+}
+
+.web-dash-root .wb-open-editor-close {
+  width: 18px;
+  height: 18px;
+  font-size: 12px;
+}
+
+.web-dash-root .wb-open-editor-row-active {
+  background: var(--wb-list-active-tint);
+}
+
+.web-dash-root .wb-tree-row {
+  padding: 0 3px;
+  min-height: 22px;
+  border-radius: 0;
+  gap: 3px;
+}
+
+.web-dash-root .wb-tree-row:hover {
+  background: var(--wb-hover);
+}
+
+.web-dash-root .wb-tree-row:focus-visible {
+  outline: 1px solid rgba(255, 255, 255, 0.1);
+  outline-offset: -1px;
+}
+
+.web-dash-root .wb-tree-file.wb-tree-active {
+  background: var(--wb-list-active-tint);
+  color: var(--wb-text-1);
+}
+
+.web-dash-root .wb-tree-file.wb-tree-selected:not(.wb-tree-active) {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.web-dash-root .wb-tree-label {
+  font-size: 10px;
+  color: var(--wb-text-2);
+}
+
+.web-dash-root .wb-tree-file.wb-tree-active .wb-tree-label {
+  color: var(--wb-text-1);
+}
+
+.web-dash-root .wb-tree-icon {
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  color: var(--wb-text-3);
+}
+
+.web-dash-root .wb-tree-icon svg {
+  opacity: 0.55;
+  filter: grayscale(1);
+}
+
+.web-dash-root .wb-tree-chevron {
+  color: var(--wb-text-3);
+  font-size: 8px;
+  width: 9px;
+  opacity: 0.65;
+}
+
+.web-dash-root .wb-main {
+  background: var(--wb-editor);
+}
+
+.web-dash-root .wb-tab-bar {
+  height: 28px;
+  background: var(--wb-tabs-bar);
+  border-bottom: 1px solid var(--wb-border);
+}
+
+.web-dash-root .wb-tab {
+  min-width: 0;
+  max-width: 200px;
+  padding: 0 8px;
+  font-size: 11px;
+  gap: 5px;
+  border-right: 1px solid var(--wb-border);
+  color: var(--wb-text-3);
+  background: var(--wb-tab-inactive);
+}
+
+.web-dash-root .wb-tab:hover {
+  background: var(--wb-side-raised);
+  color: var(--wb-text-2);
+}
+
+.web-dash-root .wb-tab:focus-visible {
+  outline: 1px solid rgba(255, 255, 255, 0.14);
+  outline-offset: -1px;
+  z-index: 1;
+}
+
+.web-dash-root .wb-tab-active {
+  background: var(--wb-editor);
+  color: var(--wb-text-1);
+  border-bottom: 1px solid var(--wb-editor);
+  margin-bottom: -1px;
+  border-top: 1px solid var(--wb-tab-active-top);
+  margin-top: -1px;
+  box-shadow: none;
+}
+
+.web-dash-root .wb-tab-preview .wb-tab-name {
+  font-style: italic;
+  opacity: 0.88;
+}
+
+.web-dash-root .wb-tab-file-icon {
+  color: var(--wb-text-3);
+  opacity: 0.85;
+}
+
+.web-dash-root .wb-tab-file-icon svg {
+  opacity: 0.65;
+  filter: grayscale(1);
+}
+
+.web-dash-root .wb-tab-active .wb-tab-file-icon {
+  color: var(--wb-text-2);
+}
+
+.web-dash-root .wb-tab-active .wb-tab-file-icon svg {
+  opacity: 0.85;
+}
+
+.web-dash-root .wb-tab-close {
+  width: 15px;
+  height: 15px;
+  font-size: 11px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.web-dash-root .wb-tab:hover .wb-tab-close {
+  opacity: 0.75;
+  pointer-events: auto;
+  color: var(--wb-text-2);
+}
+
+.web-dash-root .wb-tab-close:hover {
+  color: var(--wb-text-1);
+  background: var(--wb-hover);
+}
+
+.web-dash-root .wb-breadcrumb {
+  padding: 2px 6px;
+  font-size: 10px;
+  background: var(--wb-editor);
+  border-bottom: 1px solid var(--wb-border);
+}
+
+.web-dash-root .wb-welcome {
+  padding: 12px 10px;
+  gap: 0;
+  align-items: center;
+  justify-content: center;
+}
+
+.web-dash-root .wb-welcome-mark {
+  width: 72px;
+  height: 72px;
+  margin-bottom: 10px;
+  border-radius: 0;
+  opacity: 0.08;
+  background: radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.35), transparent 55%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.12), transparent 60%);
+}
+
+.web-dash-root .wb-welcome-lead {
+  margin: 0 0 6px;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--wb-text-3);
+}
+
+.web-dash-root .wb-welcome-hint.muted {
+  font-size: 10px;
+  color: var(--wb-text-3);
+  opacity: 0.85;
+}
+
+.web-dash-root .wb-welcome-keys {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+  width: min(100%, 360px);
+}
+
+.web-dash-root .wb-welcome-keys li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 2px 0;
+  font-size: 11px;
+  color: var(--wb-text-3);
+}
+
+.web-dash-root .wb-welcome-keys kbd {
+  flex-shrink: 0;
+  min-width: 7.25em;
+  text-align: center;
+  font-family: ui-monospace, Menlo, Consolas, monospace;
+  font-size: 10px;
+  font-weight: 400;
+  padding: 2px 6px;
+  border-radius: 3px;
+  border: 1px solid var(--wb-border);
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--wb-text-1);
+}
+
+.web-dash-root .wb-welcome-keys span {
+  color: var(--wb-text-1);
+  opacity: 0.85;
+}
+
+.web-dash-root .wb-bottom {
+  border-top: 1px solid var(--wb-border);
+  background: var(--wb-panel);
+}
+
+.web-dash-root .wb-bottom-tabs {
+  height: 22px;
+  background: var(--wb-tabs-bar);
+  border-bottom: 1px solid var(--wb-border);
+}
+
+.web-dash-root .wb-bottom-tab {
+  padding: 0 8px;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--wb-text-3);
+}
+
+.web-dash-root .wb-bottom-tab:hover {
+  color: var(--wb-text-2);
+}
+
+.web-dash-root .wb-bottom-tab:focus-visible {
+  outline: 1px solid rgba(255, 255, 255, 0.1);
+  outline-offset: -2px;
+}
+
+.web-dash-root .wb-bottom-tab-active {
+  color: var(--wb-text-1);
+  border-bottom: 1px solid var(--wb-tab-active-top);
+  margin-bottom: -1px;
+}
+
+.web-dash-root .wb-bottom-collapse {
+  padding: 0 6px;
+  font-size: 10px;
+  color: var(--wb-text-3);
+}
+
+.web-dash-root .wb-bottom-body {
+  padding: 4px 6px 6px;
+  background: var(--wb-editor);
+}
+
+.web-dash-root .wb-output-pre,
+.web-dash-root .wb-output-empty {
+  font-size: 11px;
+  line-height: 1.28;
+  letter-spacing: 0.01em;
+}
+
+.web-dash-root .wb-output-pre {
+  font-family: ui-monospace, Menlo, Consolas, 'Cascadia Mono', monospace;
+  color: var(--wb-text-2);
+}
+
+.web-dash-root .wb-output-empty {
+  color: var(--wb-text-3);
+}
+
+.web-dash-root .wb-terminal-placeholder {
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--wb-text-3);
+}
+
+.web-dash-root .wb-terminal-placeholder strong {
+  color: var(--wb-text-2);
+  font-weight: 500;
+}
+
+.web-dash-root .wb-output-error {
+  margin-bottom: 6px;
+  padding: 4px 6px;
+  font-size: 11px;
+  line-height: 1.35;
+  background: rgba(255, 80, 80, 0.05);
+  border: 1px solid rgba(255, 120, 120, 0.12);
+  color: rgba(255, 200, 190, 0.75);
+}
+
+.web-dash-root .wb-bottom-restore {
+  height: 18px;
+  padding: 0 6px;
+  font-size: 10px;
+  background: var(--wb-tabs-bar);
+  border-top: 1px solid var(--wb-border);
+  color: var(--wb-text-3);
+}
+
+.web-dash-root .wb-status-bar {
+  height: 22px;
+  padding: 0 5px;
+  background: var(--wb-status-bg);
+  color: var(--wb-text-3);
+  border-top: 1px solid var(--wb-border);
+  font-size: 10px;
+  font-weight: 400;
+}
+
+.web-dash-root .wb-status-btn {
+  color: var(--wb-text-3);
+  padding: 1px 3px;
+  font-size: 10px;
+}
+
+.web-dash-root .wb-status-btn:hover {
+  background: var(--wb-hover);
+  color: var(--wb-text-2);
+}
+
+.web-dash-root .wb-status-item {
+  color: var(--wb-text-3);
+  font-size: 10px;
+}
+
+.web-dash-root .wb-status-sep-bar {
+  background: var(--wb-border-strong);
+}
+
+.web-dash-root .wb-status-agent {
+  color: var(--wb-text-3);
+}
+
+.web-dash-root .wb-status-project,
+.web-dash-root .wb-status-file {
+  color: var(--wb-text-3);
+}
+
+.web-dash-root .wb-status-editor-meta {
+  color: var(--wb-text-3);
+  font-size: 10px;
+}
+
+/* ----- Web dashboard: motion + micro-interaction (feel, not layout) ----- */
+
+.web-dash-root .wb-app-boot {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: #181818;
+  color: var(--wb-text-3);
+  font-size: 11px;
+}
+
+.web-dash-root .wb-app-boot-label {
+  letter-spacing: 0.02em;
+}
+
+.web-dash-root .wb-app-boot-dots {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+}
+
+.web-dash-root .wb-app-boot-dots span {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--wb-text-3);
+  animation: wb-boot-dot 1s ease-out infinite;
+}
+
+.web-dash-root .wb-app-boot-dots span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.web-dash-root .wb-app-boot-dots span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes wb-boot-dot {
+  0%,
+  100% {
+    opacity: 0.25;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+.web-dash-root .wb-status-stream {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.web-dash-root .wb-status-stream-text {
+  color: var(--wb-text-3);
+}
+
+.web-dash-root .wb-status-stream-dots {
+  display: inline-flex;
+  gap: 1px;
+}
+
+.web-dash-root .wb-status-stream-dots span {
+  display: inline-block;
+  width: 2px;
+  height: 2px;
+  margin: 0 1px;
+  border-radius: 50%;
+  background: var(--wb-text-3);
+  animation: wb-status-dot 1.1s ease-out infinite;
+}
+
+.web-dash-root .wb-status-stream-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.web-dash-root .wb-status-stream-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes wb-status-dot {
+  0%,
+  100% {
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 0.75;
+  }
+}
+
+.web-dash-root .wb-tree-chevron-rot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 60ms var(--wb-ease-out);
+  transform: rotate(0deg);
+  transform-origin: 45% 55%;
+}
+
+.web-dash-root .wb-tree-chevron-rot-open {
+  transform: rotate(90deg);
+}
+
+.web-dash-root .wb-sidebar-shell {
+  transition: width var(--wb-t-panel) var(--wb-ease-out);
+}
+
+.web-dash-root .wb-app-layout-drag .wb-sidebar-shell {
+  transition: none;
+}
+
+/* Resize grips: invisible until hover / drag; 1px accent line */
+.web-dash-root .wb-resize-v,
+.web-dash-root .wb-resize-h {
+  position: relative;
+  z-index: 5;
+  background: transparent !important;
+}
+
+.web-dash-root .wb-resize-v::after,
+.web-dash-root .wb-resize-h::after {
+  content: '';
+  position: absolute;
+  pointer-events: none;
+  background: transparent;
+  transition: background var(--wb-t-hover) var(--wb-ease-out), opacity var(--wb-t-hover) var(--wb-ease-out);
+  opacity: 0;
+}
+
+.web-dash-root .wb-resize-v::after {
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  transform: translateX(-50%);
+}
+
+.web-dash-root .wb-resize-h::after {
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  transform: translateY(-50%);
+}
+
+.web-dash-root .wb-resize-v:hover::after,
+.web-dash-root .wb-resize-v:focus-visible::after,
+.web-dash-root .wb-app-layout-drag .wb-resize-v::after {
+  background: rgba(255, 255, 255, 0.16);
+  opacity: 1;
+}
+
+.web-dash-root .wb-resize-h:hover::after,
+.web-dash-root .wb-resize-h:focus-visible::after,
+.web-dash-root .wb-app-layout-drag .wb-resize-h::after {
+  background: rgba(255, 255, 255, 0.16);
+  opacity: 1;
+}
+
+.web-dash-root .wb-app-layout-drag .wb-resize-v,
+.web-dash-root .wb-app-layout-drag .wb-resize-h {
+  opacity: 0.92;
+}
+
+/* Hover / active language */
+.web-dash-root .wb-activity-btn {
+  transition:
+    background-color var(--wb-t-hover) var(--wb-ease-out),
+    opacity var(--wb-t-press) var(--wb-ease-out);
+}
+
+.web-dash-root .wb-activity-btn:active:not(:disabled) {
+  background: rgba(0, 0, 0, 0.2);
+  opacity: 0.92;
+}
+
+.web-dash-root .wb-sidebar-icon-btn {
+  transition:
+    background-color var(--wb-t-hover) var(--wb-ease-out),
+    color var(--wb-t-hover) var(--wb-ease-out);
+}
+
+.web-dash-root .wb-sidebar-icon-btn:active {
+  background: rgba(0, 0, 0, 0.22);
+  opacity: 0.9;
+}
+
+.web-dash-root .wb-tab {
+  transition:
+    background-color var(--wb-t-hover) var(--wb-ease-out),
+    color var(--wb-t-hover) var(--wb-ease-out);
+}
+
+.web-dash-root .wb-tab:active {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.web-dash-root .wb-tab-close {
+  transition: opacity var(--wb-t-hover) var(--wb-ease-out), color var(--wb-t-hover) var(--wb-ease-out);
+}
+
+.web-dash-root .wb-bottom-tab {
+  transition:
+    background-color var(--wb-t-hover) var(--wb-ease-out),
+    color var(--wb-t-hover) var(--wb-ease-out),
+    border-color var(--wb-t-hover) var(--wb-ease-out);
+}
+
+.web-dash-root .wb-bottom-tab:active {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.web-dash-root .wb-bottom-collapse {
+  transition: color var(--wb-t-hover) var(--wb-ease-out), background-color var(--wb-t-hover) var(--wb-ease-out);
+}
+
+.web-dash-root .wb-bottom-collapse:active {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.web-dash-root .wb-status-btn {
+  transition:
+    background-color var(--wb-t-hover) var(--wb-ease-out),
+    color var(--wb-t-hover) var(--wb-ease-out);
+}
+
+.web-dash-root .wb-status-btn:active {
+  background: rgba(0, 0, 0, 0.2);
+  opacity: 0.92;
+}
+
+.web-dash-root .wb-status-errors {
+  transition: background-color var(--wb-t-hover) var(--wb-ease-out), opacity var(--wb-t-press) var(--wb-ease-out);
+}
+
+.web-dash-root .wb-status-errors:active {
+  opacity: 0.88;
+}
+
+.web-dash-root .wb-tree-row {
+  transition: background-color var(--wb-t-hover) var(--wb-ease-out);
+}
+
+.web-dash-root .wb-tree-row:active {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.web-dash-root .wb-open-editor-main,
+.web-dash-root .wb-open-editor-close {
+  transition:
+    background-color var(--wb-t-hover) var(--wb-ease-out),
+    color var(--wb-t-hover) var(--wb-ease-out),
+    opacity var(--wb-t-hover) var(--wb-ease-out);
+}
+
+.web-dash-root .wb-open-editor-close {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.web-dash-root .wb-open-editor-row:hover .wb-open-editor-close {
+  opacity: 0.75;
+  pointer-events: auto;
+}
+
+.web-dash-root .wb-open-editor-main:active {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.web-dash-root .wb-open-editor-close:active {
+  opacity: 0.82;
+}
+
+.web-dash-root .wb-composer-submit {
+  transition:
+    background-color var(--wb-t-hover) var(--wb-ease-out),
+    color var(--wb-t-hover) var(--wb-ease-out),
+    border-color var(--wb-t-hover) var(--wb-ease-out),
+    opacity var(--wb-t-press) var(--wb-ease-out);
+}
+
+.web-dash-root .wb-composer-submit:active:not(:disabled) {
+  background: rgba(0, 0, 0, 0.25);
+  opacity: 0.9;
+}
+
+.web-dash-root .wb-composer-field,
+.web-dash-root .wb-composer-model {
+  transition: border-color var(--wb-t-hover) var(--wb-ease-out), background-color var(--wb-t-hover) var(--wb-ease-out);
+}
+
+.web-dash-root .wb-composer-field::placeholder,
+.web-dash-root .wb-composer-context::placeholder,
+.web-dash-root .wb-composer-mission::placeholder {
+  color: rgba(255, 255, 255, 0.22);
+  transition: opacity var(--wb-t-hover) var(--wb-ease-out);
+}
+
+.web-dash-root .wb-composer-field:focus::placeholder {
+  opacity: 0.55;
+}
+
+.web-dash-root .wb-menu-item {
+  transition: color var(--wb-t-hover) var(--wb-ease-out), background-color var(--wb-t-hover) var(--wb-ease-out);
+}
+
+.web-dash-root .wb-menu-item:active {
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.web-dash-root .wb-app-title {
+  transition: color var(--wb-t-hover) var(--wb-ease-out);
+}
+
+.web-dash-root .wb-app-title:active {
+  opacity: 0.85;
+}
+
+.web-dash-root .ide-toolbar-btn {
+  transition:
+    background-color var(--wb-t-hover) var(--wb-ease-out),
+    color var(--wb-t-hover) var(--wb-ease-out),
+    border-color var(--wb-t-hover) var(--wb-ease-out);
+}
+
+.web-dash-root .ide-toolbar-btn:active {
+  background: rgba(0, 0, 0, 0.2);
+  opacity: 0.92;
+}
+
+/* Focus: thin neutral ring, no product blue */
+.web-dash-root .wb-tree-row:focus-visible,
+.web-dash-root .wb-open-editor-main:focus-visible,
+.web-dash-root .wb-composer-field:focus-visible,
+.web-dash-root .wb-composer-model:focus-visible {
+  outline: 1px solid rgba(255, 255, 255, 0.12);
+  outline-offset: -1px;
+}
+
+.web-dash-root .wb-composer-submit:focus-visible {
+  outline: 1px solid rgba(255, 255, 255, 0.14);
+  outline-offset: 1px;
+}
+
+.web-dash-root .wb-activity-btn:focus-visible,
+.web-dash-root .wb-sidebar-icon-btn:focus-visible,
+.web-dash-root .wb-bottom-tab:focus-visible,
+.web-dash-root .wb-status-btn:focus-visible {
+  outline: 1px solid rgba(255, 255, 255, 0.12);
+  outline-offset: -1px;
+}
+
+/* Native-ish scroll: smooth + thin scrollbars */
+.web-dash-root .wb-file-tree-scroll,
+.web-dash-root .wb-composer-stack-flat,
+.web-dash-root .wb-bottom-body,
+.web-dash-root .wb-search-sidebar,
+.web-dash-root .wb-scm-panel {
+  scroll-behavior: smooth;
+  scrollbar-gutter: stable;
+}
+
+.web-dash-root .wb-file-tree-scroll,
+.web-dash-root .wb-composer-stack-flat,
+.web-dash-root .wb-bottom-body {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+}
+
+.web-dash-root .wb-file-tree-scroll:hover,
+.web-dash-root .wb-composer-stack-flat:hover,
+.web-dash-root .wb-bottom-body:hover {
+  scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.web-dash-root .wb-file-tree-scroll::-webkit-scrollbar,
+.web-dash-root .wb-composer-stack-flat::-webkit-scrollbar,
+.web-dash-root .wb-bottom-body::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.web-dash-root .wb-file-tree-scroll::-webkit-scrollbar-thumb,
+.web-dash-root .wb-composer-stack-flat::-webkit-scrollbar-thumb,
+.web-dash-root .wb-bottom-body::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 0;
+}
+
+.web-dash-root .wb-file-tree-scroll:hover::-webkit-scrollbar-thumb,
+.web-dash-root .wb-composer-stack-flat:hover::-webkit-scrollbar-thumb,
+.web-dash-root .wb-bottom-body:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.web-dash-root .wb-output-pre {
+  scroll-behavior: smooth;
+  overflow-anchor: auto;
+  line-height: 1.32;
+  transition: opacity var(--wb-t-hover) var(--wb-ease-out);
+}
+
+.web-dash-root .wb-output-empty {
+  transition: opacity var(--wb-t-hover) var(--wb-ease-out);
+}
+
+.web-dash-root .wb-monaco-loading {
+  font-size: 11px;
+  color: var(--wb-text-3);
+  letter-spacing: 0.04em;
+  animation: wb-monaco-load-fade 1.4s ease-out infinite;
+}
+
+@keyframes wb-monaco-load-fade {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+.web-dash-root .btn-outline.ide-toolbar-btn {
+  background: transparent;
+  color: var(--wb-text-3);
+  border-color: var(--wb-border);
+}
+
+.web-dash-root .btn-outline.ide-toolbar-btn:hover {
+  color: var(--wb-text-2);
+  background: var(--wb-hover);
+}
+
+.web-dash-root .wb-file-tree-sub {
+  border-bottom-color: var(--wb-border);
+}
+
+.web-dash-root .wb-open-editors {
+  border-bottom-color: var(--wb-border);
 }
 
 /* LEGAL loading */

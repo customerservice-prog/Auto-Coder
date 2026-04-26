@@ -95,14 +95,10 @@ export const DEMO_BUFFERS: Record<string, DemoBufferInit> = {
     language: 'markdown',
     content: `# ${WEB_DEMO_PROJECT_NAME}
 
-This is a **demo workspace** in the Auto-Coder web IDE — same chrome as the desktop app (activity bar, Explorer, tabs, Monaco, bottom panel, Composer).
+Sample workspace for the web shell (Explorer, editor, panel, Composer).
 
-- Paste context and a mission in **Composer** → streamed output appears in **Output**.
-- Open real folders and terminals in the **desktop** app; the web shell is for planning and assistant runs.
-
----
-
-*Built to feel like Cursor — autonomous agent loop ships in desktop + CLI.*
+- Composer streams responses to **Output**.
+- Use a local checkout for full workspace tools (terminal, Git UI, file writes).
 `,
   },
   'web-demo/PLAN.md': {
@@ -110,11 +106,9 @@ This is a **demo workspace** in the Auto-Coder web IDE — same chrome as the de
     language: 'markdown',
     content: `# PLAN
 
-1. Describe the mission in Composer.
-2. Review streamed output below.
-3. Apply changes locally (desktop) or copy patches from Output.
-
-*(Agent writes this file on disk in the desktop app — here it is sample text.)*
+1. Mission in Composer.
+2. Review streamed output.
+3. Apply changes in your local workspace.
 `,
   },
   'web-demo/apps/web/dashboard/page.tsx': {
@@ -122,8 +116,7 @@ This is a **demo workspace** in the Auto-Coder web IDE — same chrome as the de
     language: 'typescript',
     content: `'use client';
 
-// Sample buffer — your real \`page.tsx\` lives in the repo.
-// Composer on the right talks to POST /api/agent.
+// Sample buffer — replace with your app code locally.
 
 export default function DashboardPage() {
   return null;

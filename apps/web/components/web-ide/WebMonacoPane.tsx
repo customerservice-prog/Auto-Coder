@@ -19,6 +19,10 @@ export interface WebMonacoPaneProps {
   value: string;
   readOnly?: boolean;
   minimapEnabled?: boolean;
+  /** Restored when switching back to this file (scroll + cursor). */
+  savedViewState?: editor.ICodeEditorViewState | null;
+  /** Called when this path unmounts so the parent can cache view state. */
+  onSaveViewState?: (path: string, state: editor.ICodeEditorViewState | null) => void;
   onChange?: (value: string) => void;
   /** Fires when the Monaco instance is ready (e.g. for global zoom shortcuts). */
   onEditorReady?: (editorInstance: editor.IStandaloneCodeEditor) => void;
@@ -32,6 +36,8 @@ export function WebMonacoPane({
   value,
   readOnly,
   minimapEnabled = false,
+  savedViewState,
+  onSaveViewState,
   onChange,
   onEditorReady,
   onCursorPositionChange,
@@ -60,18 +66,27 @@ export function WebMonacoPane({
 
   const options = useMemo(
     (): editor.IStandaloneEditorConstructionOptions => ({
-      minimap: { enabled: Boolean(minimapEnabled), scale: 0.85, maxColumn: 120 },
-      fontSize: 13,
-      lineHeight: 20,
+      minimap: { enabled: Boolean(minimapEnabled), scale: 0.7, maxColumn: 80 },
+      fontSize: 12,
+      lineHeight: 16,
       lineNumbers: 'on',
-      lineNumbersMinChars: 3,
-      glyphMargin: true,
+      lineNumbersMinChars: 2,
+      glyphMargin: false,
       folding: true,
-      padding: { top: 8, bottom: 8 },
+      padding: { top: 1, bottom: 1 },
       scrollBeyondLastLine: false,
       wordWrap: 'on',
       smoothScrolling: true,
+      scrollbar: {
+        vertical: 'auto',
+        horizontal: 'auto',
+        verticalScrollbarSize: 8,
+        horizontalScrollbarSize: 8,
+        useShadows: false,
+      },
       cursorBlinking: 'smooth',
+      cursorStyle: 'line',
+      cursorWidth: 1,
       renderLineHighlight: 'line',
       bracketPairColorization: { enabled: true },
       automaticLayout: true,
@@ -84,15 +99,55 @@ export function WebMonacoPane({
 
   useEffect(() => {
     return () => {
+      const ed = editorRef.current;
+      if (ed && onSaveViewState) {
+        try {
+          onSaveViewState(path, ed.saveViewState());
+        } catch {
+          onSaveViewState(path, null);
+        }
+      }
       cursorDisposableRef.current?.dispose();
       cursorDisposableRef.current = null;
       editorRef.current = null;
     };
-  }, [path]);
+  }, [path, onSaveViewState]);
 
   const onMount = useCallback(
     (editorInstance: editor.IStandaloneCodeEditor, monaco: typeof import('monaco-editor')) => {
-      monaco.editor.setTheme('vs-dark');
+      monaco.editor.defineTheme('ac-cursor', {
+        base: 'vs-dark',
+        inherit: true,
+        rules: [],
+        colors: {
+          'editor.background': '#1e1e1e',
+          'editor.foreground': '#d4d4d4',
+          'editorGutter.background': '#1e1e1e',
+          'editorLineNumber.foreground': '#4b4b4b',
+          'editorLineNumber.activeForeground': '#858585',
+          'editor.lineHighlightBackground': '#242424',
+          'editor.lineHighlightBorder': '#00000000',
+          'editor.selectionBackground': '#3d3d3d',
+          'editor.inactiveSelectionBackground': '#353535',
+          'editorCursor.foreground': '#c8c8c8',
+          'editorWhitespace.foreground': '#3b3a39',
+          'minimap.background': '#1e1e1e',
+          'minimapSlider.background': '#79797933',
+          'minimapSlider.hoverBackground': '#63636359',
+          'minimapSlider.activeBackground': '#bfbfbf66',
+          'scrollbarSlider.background': 'rgba(255, 255, 255, 0.06)',
+          'scrollbarSlider.hoverBackground': 'rgba(255, 255, 255, 0.12)',
+          'scrollbarSlider.activeBackground': 'rgba(255, 255, 255, 0.16)',
+        },
+      });
+      monaco.editor.setTheme('ac-cursor');
+      if (savedViewState) {
+        try {
+          editorInstance.restoreViewState(savedViewState);
+        } catch {
+          /* ignore */
+        }
+      }
       editorInstance.focus();
       editorRef.current = editorInstance;
       cursorDisposableRef.current?.dispose();
@@ -109,7 +164,7 @@ export function WebMonacoPane({
         }
       }
     },
-    [onEditorReady, onCursorPositionChange],
+    [onEditorReady, onCursorPositionChange, savedViewState],
   );
 
   return (
