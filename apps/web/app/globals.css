@@ -557,6 +557,25 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
   cursor: not-allowed;
 }
 
+.ide-submit-send {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  border-radius: 10px;
+}
+
+.ide-submit-arrow {
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.ide-submit-loading {
+  font-size: 13px;
+  font-weight: 600;
+}
+
 .ide-quota {
   font-size: 11px;
   color: var(--ide-muted);
@@ -583,11 +602,26 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
   --ide-accent: #f97316;
   --ide-focus: #38bdf8;
   min-height: 100dvh;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   background: #1e1e1e;
   color: #cccccc;
   font-size: 13px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
+}
+
+.web-dash-root .ide-brand-mark {
+  box-shadow: none;
+}
+
+.web-dash-root .ide-dev-strip {
+  color: #cca700;
+  background: rgba(255, 193, 7, 0.08);
+  border-bottom-color: rgba(255, 193, 7, 0.2);
+  font-size: 11px;
 }
 
 .web-dash-root .ide-titlebar {
@@ -607,7 +641,8 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
   display: flex;
   flex-direction: column;
   min-height: 0;
-  width: min(380px, 100%);
+  min-width: 280px;
+  max-width: 640px;
   flex-shrink: 0;
   border-left: 1px solid #3c3c3c;
   overflow: hidden;
@@ -617,6 +652,16 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
 
 .wb-composer .ide-sidebar-header {
   border-bottom-color: #3c3c3c;
+}
+
+.wb-composer .ide-sidebar-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #6e7681;
+  font-family: inherit;
+  margin: 0 0 8px;
 }
 
 .wb-composer .ide-form {
@@ -651,6 +696,11 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
 }
 
 .wb-activity-top,
+.wb-activity-spacer {
+  flex: 1;
+  min-height: 8px;
+}
+
 .wb-activity-bottom {
   display: flex;
   flex-direction: column;
@@ -697,8 +747,35 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
   line-height: 1;
 }
 
+.wb-resize-v {
+  width: 4px;
+  flex-shrink: 0;
+  cursor: col-resize;
+  background: transparent;
+  z-index: 4;
+}
+
+.wb-resize-v:hover,
+.wb-resize-v:focus-visible {
+  background: rgba(0, 127, 212, 0.35);
+}
+
+.wb-resize-h {
+  height: 4px;
+  flex-shrink: 0;
+  cursor: row-resize;
+  background: transparent;
+  z-index: 4;
+}
+
+.wb-resize-h:hover,
+.wb-resize-h:focus-visible {
+  background: rgba(0, 127, 212, 0.35);
+}
+
 .wb-sidebar {
-  width: 260px;
+  min-width: 180px;
+  max-width: 560px;
   flex-shrink: 0;
   background: #252526;
   border-right: 1px solid #3c3c3c;
@@ -712,6 +789,153 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
   flex-direction: column;
   height: 100%;
   min-height: 0;
+}
+
+.wb-sidebar-view-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid #3c3c3c;
+  min-height: 35px;
+}
+
+.wb-sidebar-view-header .wb-sidebar-heading {
+  margin: 0;
+}
+
+.wb-sidebar-view-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.wb-sidebar-icon-btn {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: #9d9d9d;
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.wb-sidebar-icon-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  color: #cccccc;
+}
+
+.wb-sidebar-icon-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.wb-file-tree-sub {
+  flex-shrink: 0;
+  padding: 4px 12px 8px;
+  border-bottom: 1px solid #2b2b2b;
+}
+
+.wb-open-editors {
+  flex-shrink: 0;
+  border-bottom: 1px solid #3c3c3c;
+  max-height: 160px;
+  overflow: auto;
+}
+
+.wb-open-editors-label {
+  padding: 6px 12px 2px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #6e7681;
+}
+
+.wb-open-editors-list {
+  list-style: none;
+  margin: 0;
+  padding: 2px 4px 6px;
+}
+
+.wb-open-editor-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  width: 100%;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.wb-open-editor-row:hover {
+  background: #2a2d2e;
+}
+
+.wb-open-editor-row-active {
+  background: rgba(0, 127, 212, 0.12);
+}
+
+.wb-open-editor-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 4px 4px 6px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.wb-open-editor-icon {
+  flex-shrink: 0;
+  display: flex;
+  color: #8b949e;
+}
+
+.wb-open-editor-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.wb-open-editor-dirty {
+  color: #e3b341;
+}
+
+.wb-open-editor-close {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: #6e7681;
+  cursor: pointer;
+  opacity: 0;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.wb-open-editor-row:hover .wb-open-editor-close {
+  opacity: 1;
+}
+
+.wb-open-editor-close:hover {
+  background: #3c3c3c;
+  color: #cccccc;
 }
 
 .wb-file-tree-header {
@@ -814,6 +1038,133 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
   color: #58a6ff;
 }
 
+.wb-search-sidebar {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.wb-search-workspace {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 0 10px 10px;
+}
+
+.wb-search-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 8px;
+}
+
+.wb-search-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px 8px;
+  font-size: 13px;
+  border: 1px solid #3c3c3c;
+  border-radius: 2px;
+  background: #3c3c3c;
+  color: #cccccc;
+  font-family: inherit;
+}
+
+.wb-search-input:focus {
+  outline: 1px solid #007fd4;
+  outline-offset: 0;
+}
+
+.wb-search-replace {
+  opacity: 0.95;
+}
+
+.wb-search-toggles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  font-size: 12px;
+  color: #9d9d9d;
+}
+
+.wb-search-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.wb-search-scope {
+  margin: 8px 0 4px;
+  font-size: 11px;
+  color: #6e7681;
+  line-height: 1.4;
+}
+
+.wb-search-results {
+  flex: 1;
+  overflow-y: auto;
+  margin-top: 6px;
+  border: 1px solid #2b2b2b;
+  border-radius: 2px;
+  background: #1e1e1e;
+}
+
+.wb-search-empty {
+  margin: 12px;
+  font-size: 12px;
+  color: #6e7681;
+}
+
+.wb-search-hit {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-bottom: 1px solid #2b2b2b;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+}
+
+.wb-search-hit:hover {
+  background: #2a2d2e;
+}
+
+.wb-search-hit-path {
+  font-size: 11px;
+  font-family: ui-monospace, Menlo, monospace;
+  color: #58a6ff;
+}
+
+.wb-search-hit-preview {
+  font-size: 12px;
+  color: #9d9d9d;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.wb-scm-panel {
+  padding: 0 12px 12px;
+  overflow: auto;
+}
+
+.wb-scm-hint {
+  font-size: 12px;
+  line-height: 1.55;
+  color: #9d9d9d;
+  margin-top: 10px;
+}
+
 .wb-main {
   flex: 1;
   min-width: 0;
@@ -866,6 +1217,13 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
   font-weight: 500;
 }
 
+.wb-tab-file-icon {
+  flex-shrink: 0;
+  display: flex;
+  color: #8b949e;
+  opacity: 0.85;
+}
+
 .wb-tab {
   display: flex;
   align-items: center;
@@ -914,6 +1272,12 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
   border-radius: 3px;
   font-size: 14px;
   padding: 0;
+  opacity: 0;
+}
+
+.wb-tab:hover .wb-tab-close,
+.wb-tab-active .wb-tab-close {
+  opacity: 1;
 }
 
 .wb-tab-close:hover {
@@ -932,6 +1296,16 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
   flex: 1;
   min-height: 120px;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.wb-monaco-root {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 .wb-monaco-loading {
@@ -961,9 +1335,9 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
 }
 
 .wb-bottom {
-  flex: 0 0 min(38vh, 280px);
+  flex-grow: 0;
+  flex-shrink: 0;
   min-height: 120px;
-  max-height: 45vh;
   display: flex;
   flex-direction: column;
   border-top: 1px solid #3c3c3c;
@@ -1183,6 +1557,65 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
 
 .wb-status-btn:hover {
   background: rgba(255, 255, 255, 0.12);
+}
+
+.wb-status-icononly {
+  font-size: 13px;
+}
+
+.wb-status-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.92);
+  white-space: nowrap;
+}
+
+.wb-status-remote {
+  opacity: 0.85;
+  font-size: 12px;
+}
+
+.wb-status-branch {
+  gap: 5px;
+}
+
+.wb-status-branch-icon {
+  font-size: 11px;
+  opacity: 0.9;
+}
+
+.wb-status-errors {
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-size: 11px;
+}
+
+.wb-status-errors:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.wb-status-errors-clear {
+  cursor: default;
+  opacity: 0.65;
+}
+
+.wb-status-sep-bar {
+  width: 1px;
+  height: 14px;
+  background: rgba(255, 255, 255, 0.25);
+  margin: 0 4px;
+}
+
+.wb-status-eol {
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 0.04em;
 }
 
 .wb-status-project,
@@ -1476,7 +1909,9 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
 .wb-app.wb-app-zen .wb-composer,
 .wb-app.wb-app-zen .wb-status-bar,
 .wb-app.wb-app-zen .wb-bottom,
-.wb-app.wb-app-zen .wb-bottom-restore {
+.wb-app.wb-app-zen .wb-bottom-restore,
+.wb-app.wb-app-zen .wb-resize-v,
+.wb-app.wb-app-zen .wb-resize-h {
   display: none !important;
 }
 

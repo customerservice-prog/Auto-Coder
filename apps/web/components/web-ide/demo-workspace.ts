@@ -30,7 +30,7 @@ export function formatAgentStreamMd(output: string, err: string | null, busy: bo
 
 export const DEMO_FILE_TREE: WebDemoNode[] = [
   {
-    name: WEB_DEMO_PROJECT_NAME,
+    name: 'web-demo',
     path: 'web-demo',
     type: 'directory',
     children: [

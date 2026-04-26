@@ -6,10 +6,10 @@ import {
   useMemo,
   useRef,
   useState,
+  type MouseEvent as ReactMouseEvent,
   type ReactNode,
   type KeyboardEvent as ReactKeyboardEvent,
 } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { editor } from 'monaco-editor';
 import { isClerkEnabled } from '@/lib/clerk-enabled';
@@ -18,6 +18,18 @@ import { WebCommandPalette, type PaletteItem } from '@/components/web-ide/WebCom
 import { WebQuickOpen } from '@/components/web-ide/WebQuickOpen';
 import { WebKeyboardShortcutsModal } from '@/components/web-ide/WebKeyboardShortcutsModal';
 import { WebGoToLine } from '@/components/web-ide/WebGoToLine';
+import { WebSearchPanel } from '@/components/web-ide/WebSearchPanel';
+import {
+  IconAccount,
+  IconExplorer,
+  IconExtensions,
+  IconFile,
+  IconFolder,
+  IconRunDebug,
+  IconSearch,
+  IconSettings,
+  IconSourceControl,
+} from '@/components/web-ide/activity-icons';
 import { formatModShortcut as accel } from '@/components/web-ide/keyboard-accel';
 import { problemRowsFromAgentError } from '@/components/web-ide/agent-error-lines';
 import {
@@ -32,7 +44,7 @@ import {
   type WebDemoNode,
 } from '@/components/web-ide/demo-workspace';
 
-type ActivityView = 'explorer' | 'search';
+type ActivityView = 'explorer' | 'search' | 'scm';
 type BottomTab = 'output' | 'terminal' | 'problems';
 
 interface OpenBuffer {
@@ -95,7 +107,7 @@ function DemoTree(props: {
                   {expanded.has(node.path) ? '▼' : '▶'}
                 </span>
                 <span className="wb-tree-icon" aria-hidden>
-                  📁
+                  <IconFolder />
                 </span>
                 <span className="wb-tree-label">{node.name}</span>
               </button>
@@ -119,7 +131,7 @@ function DemoTree(props: {
             >
               <span className="wb-tree-chevron wb-tree-chevron-spacer" aria-hidden />
               <span className="wb-tree-icon" aria-hidden>
-                📄
+                <IconFile />
               </span>
               <span className="wb-tree-label">{node.name}</span>
             </button>
@@ -154,7 +166,11 @@ export function WebIdeWorkbench({
   const [activePath, setActivePath] = useState(DEFAULT_OPEN_PATH);
   const [bottomExpanded, setBottomExpanded] = useState(true);
   const [bottomTab, setBottomTab] = useState<BottomTab>('output');
-  const [minimapEnabled, setMinimapEnabled] = useState(false);
+  const [minimapEnabled, setMinimapEnabled] = useState(true);
+  const [sidebarW, setSidebarW] = useState(260);
+  const [composerW, setComposerW] = useState(380);
+  const [bottomH, setBottomH] = useState(220);
+  const layoutDragRef = useRef<{ kind: 'sb' | 'comp' | 'panel'; start: number; initial: number } | null>(null);
   const [cursorLine, setCursorLine] = useState(1);
   const [cursorCol, setCursorCol] = useState(1);
   const prevAgentErrorRef = useRef<string | null>(null);
@@ -178,6 +194,57 @@ export function WebIdeWorkbench({
   zenModeRef.current = zenMode;
   openTabsRef.current = openTabs;
   activePathRef.current = activePath;
+
+  useEffect(() => {
+    const onMove = (e: globalThis.MouseEvent) => {
+      const d = layoutDragRef.current;
+      if (!d) return;
+      if (d.kind === 'sb') {
+        const dx = e.clientX - d.start;
+        setSidebarW((w) => Math.min(520, Math.max(180, d.initial + dx)));
+      } else if (d.kind === 'comp') {
+        const dx = d.start - e.clientX;
+        setComposerW((w) => Math.min(560, Math.max(280, d.initial + dx)));
+      } else {
+        const dy = d.start - e.clientY;
+        setBottomH((h) => Math.min(520, Math.max(120, d.initial + dy)));
+      }
+    };
+    const onUp = () => {
+      if (layoutDragRef.current) {
+        layoutDragRef.current = null;
+      }
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseup', onUp);
+    };
+  }, []);
+
+  const beginSidebarResize = useCallback((e: ReactMouseEvent) => {
+    e.preventDefault();
+    layoutDragRef.current = { kind: 'sb', start: e.clientX, initial: sidebarW };
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  }, [sidebarW]);
+
+  const beginComposerResize = useCallback((e: ReactMouseEvent) => {
+    e.preventDefault();
+    layoutDragRef.current = { kind: 'comp', start: e.clientX, initial: composerW };
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  }, [composerW]);
+
+  const beginPanelResize = useCallback((e: ReactMouseEvent) => {
+    e.preventDefault();
+    layoutDragRef.current = { kind: 'panel', start: e.clientY, initial: bottomH };
+    document.body.style.cursor = 'row-resize';
+    document.body.style.userSelect = 'none';
+  }, [bottomH]);
 
   const quickOpenEntries = useMemo(() => listQuickOpenDemoFiles(), []);
 
@@ -329,6 +396,16 @@ export function WebIdeWorkbench({
         e.stopPropagation();
         ed.focus();
         void ed.getAction('actions.find')?.run();
+        return;
+      }
+
+      if (mod && e.key.toLowerCase() === 'h' && !e.shiftKey && !e.altKey) {
+        const ed = monacoEditorRef.current;
+        if (!ed) return;
+        e.preventDefault();
+        e.stopPropagation();
+        ed.focus();
+        void ed.getAction('editor.action.startFindReplaceAction')?.run();
         return;
       }
 
@@ -513,6 +590,17 @@ export function WebIdeWorkbench({
         },
       },
       {
+        id: 'palette-replace',
+        label: 'Editor: Replace',
+        shortcut: accel('Ctrl+H'),
+        onSelect: () => {
+          const ed = monacoEditorRef.current;
+          if (!ed) return;
+          ed.focus();
+          void ed.getAction('editor.action.startFindReplaceAction')?.run();
+        },
+      },
+      {
         id: 'palette-shortcuts',
         label: 'Help: Keyboard Shortcuts',
         shortcut: accel('Ctrl+Shift+/'),
@@ -670,7 +758,7 @@ export function WebIdeWorkbench({
               }}
             >
               <span className="wb-activity-icon" aria-hidden>
-                📂
+                <IconExplorer />
               </span>
             </button>
             <button
@@ -684,69 +772,201 @@ export function WebIdeWorkbench({
               }}
             >
               <span className="wb-activity-icon" aria-hidden>
-                🔍
+                <IconSearch />
               </span>
             </button>
-            <button type="button" className="wb-activity-btn" disabled title="Run (soon)" aria-disabled tabIndex={-1}>
+            <button
+              type="button"
+              className={`wb-activity-btn ${activityView === 'scm' ? 'wb-activity-btn-active' : ''}`}
+              title="Source Control"
+              aria-pressed={activityView === 'scm'}
+              onClick={() => {
+                setActivityView('scm');
+                setSidebarOpen(true);
+              }}
+            >
               <span className="wb-activity-icon" aria-hidden>
-                ▶
+                <IconSourceControl />
               </span>
             </button>
-            <button type="button" className="wb-activity-btn" disabled title="Extensions (soon)" aria-disabled tabIndex={-1}>
+            <button type="button" className="wb-activity-btn" disabled title="Run and Debug (desktop)" aria-disabled tabIndex={-1}>
               <span className="wb-activity-icon" aria-hidden>
-                🧩
+                <IconRunDebug />
+              </span>
+            </button>
+            <button type="button" className="wb-activity-btn" disabled title="Extensions (desktop)" aria-disabled tabIndex={-1}>
+              <span className="wb-activity-icon" aria-hidden>
+                <IconExtensions />
               </span>
             </button>
           </div>
+          <div className="wb-activity-spacer" aria-hidden />
           <div className="wb-activity-bottom">
             <button
               type="button"
               className="wb-activity-btn wb-activity-account"
-              title={isClerkEnabled() ? 'Sign in' : 'Sign in (enable Clerk in .env)'}
-              aria-label="Sign in"
+              title={isClerkEnabled() ? 'Account' : 'Account (enable Clerk in .env)'}
+              aria-label="Account"
               onClick={goSignIn}
             >
               <span className="wb-activity-icon" aria-hidden>
-                👤
+                <IconAccount />
+              </span>
+            </button>
+            <button
+              type="button"
+              className="wb-activity-btn"
+              title={`Keyboard shortcuts (${accel('Ctrl+Shift+/')})`}
+              aria-label="Keyboard shortcuts"
+              onClick={() => setShortcutsOpen(true)}
+            >
+              <span className="wb-activity-icon" aria-hidden>
+                <IconSettings />
               </span>
             </button>
           </div>
         </nav>
 
         {sidebarOpen ? (
-          <aside className="wb-sidebar" role="complementary" aria-label={activityView === 'explorer' ? 'Explorer' : 'Search'}>
-            {activityView === 'explorer' ? (
-              <div className="wb-file-tree">
-                <div className="wb-file-tree-header">
-                  <div className="wb-file-tree-titles">
-                    <h2 className="wb-sidebar-heading">Explorer</h2>
-                    <span className="wb-project-name">{WEB_DEMO_PROJECT_NAME}</span>
+          <>
+            <aside
+              className="wb-sidebar"
+              style={{ width: sidebarW }}
+              role="complementary"
+              aria-label={
+                activityView === 'explorer' ? 'Explorer' : activityView === 'search' ? 'Search' : 'Source control'
+              }
+            >
+              {activityView === 'explorer' ? (
+                <div className="wb-file-tree">
+                  <div className="wb-sidebar-view-header">
+                    <span className="wb-sidebar-heading">Explorer</span>
+                    <div className="wb-sidebar-view-actions">
+                      <button type="button" className="wb-sidebar-icon-btn" disabled title="Views and more actions">
+                        ⋯
+                      </button>
+                      <button
+                        type="button"
+                        className="wb-sidebar-icon-btn"
+                        title="Hide side bar"
+                        aria-label="Hide side bar"
+                        onClick={() => setSidebarOpen(false)}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                  <div className="wb-file-tree-sub">
+                    <span className="wb-project-name" title={WEB_DEMO_PROJECT_NAME}>
+                      {WEB_DEMO_PROJECT_NAME}
+                    </span>
+                  </div>
+                  <div className="wb-open-editors">
+                    <div className="wb-open-editors-label">Open editors</div>
+                    <ul className="wb-open-editors-list">
+                      {openTabs.map((path) => {
+                        const buf = buffers[path];
+                        const label = buf?.name ?? path;
+                        const dirty = buf?.isDirty;
+                        return (
+                          <li key={path}>
+                            <div
+                              className={`wb-open-editor-row ${path === activePath ? 'wb-open-editor-row-active' : ''}`}
+                            >
+                              <button
+                                type="button"
+                                className="wb-open-editor-main"
+                                onClick={() => setActivePath(path)}
+                              >
+                                <span className="wb-open-editor-icon" aria-hidden>
+                                  <IconFile />
+                                </span>
+                                <span className="wb-open-editor-name">
+                                  {dirty ? <span className="wb-open-editor-dirty">● </span> : null}
+                                  {label}
+                                </span>
+                              </button>
+                              <button
+                                type="button"
+                                className="wb-open-editor-close"
+                                aria-label={`Close ${label}`}
+                                tabIndex={-1}
+                                onClick={(ev) => closeTab(path, ev)}
+                              >
+                                ×
+                              </button>
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  </div>
+                  <div className="wb-file-tree-scroll">
+                    <DemoTree
+                      nodes={DEMO_FILE_TREE}
+                      depth={0}
+                      expanded={expandedDirs}
+                      toggleDir={toggleDir}
+                      activeFile={activePath}
+                      onFileOpen={openFile}
+                    />
                   </div>
                 </div>
-                <div className="wb-file-tree-scroll">
-                  <DemoTree
-                    nodes={DEMO_FILE_TREE}
-                    depth={0}
-                    expanded={expandedDirs}
-                    toggleDir={toggleDir}
-                    activeFile={activePath}
-                    onFileOpen={openFile}
-                  />
+              ) : activityView === 'search' ? (
+                <div className="wb-search-sidebar">
+                  <div className="wb-sidebar-view-header">
+                    <span className="wb-sidebar-heading">Search</span>
+                    <div className="wb-sidebar-view-actions">
+                      <button type="button" className="wb-sidebar-icon-btn" disabled>
+                        ⋯
+                      </button>
+                      <button
+                        type="button"
+                        className="wb-sidebar-icon-btn"
+                        title="Hide side bar"
+                        aria-label="Hide side bar"
+                        onClick={() => setSidebarOpen(false)}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                  <WebSearchPanel onOpenFile={openFile} />
                 </div>
-              </div>
-            ) : (
-              <div className="wb-search-panel">
-                <h2 className="wb-sidebar-heading">Search</h2>
-                <p className="wb-search-hint">
-                  Workspace search ships with the desktop indexer. Use{' '}
-                  <strong>{accel('Ctrl+F')}</strong> in the editor for the current file, or run{' '}
-                  <strong>Editor: Find</strong> from the command palette. This view opens with{' '}
-                  <strong>{accel('Ctrl+Shift+F')}</strong>. Open the <Link href="/">marketing site</Link> for product
-                  context.
-                </p>
-              </div>
-            )}
-          </aside>
+              ) : (
+                <div className="wb-scm-panel">
+                  <div className="wb-sidebar-view-header">
+                    <span className="wb-sidebar-heading">Source control</span>
+                    <div className="wb-sidebar-view-actions">
+                      <button type="button" className="wb-sidebar-icon-btn" disabled>
+                        ⋯
+                      </button>
+                      <button
+                        type="button"
+                        className="wb-sidebar-icon-btn"
+                        title="Hide side bar"
+                        aria-label="Hide side bar"
+                        onClick={() => setSidebarOpen(false)}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                  <p className="wb-scm-hint">
+                    Git staging, diffs, and commits run in the <strong>desktop</strong> app. This web shell is for agent
+                    runs and planning.
+                  </p>
+                </div>
+              )}
+            </aside>
+            <div
+              className="wb-resize-v"
+              role="separator"
+              aria-orientation="vertical"
+              aria-label="Resize side bar"
+              onMouseDown={beginSidebarResize}
+            />
+          </>
         ) : null}
 
         <div className="wb-main" role="main">
@@ -769,6 +989,9 @@ export function WebIdeWorkbench({
                   className={`wb-tab ${path === activePath ? 'wb-tab-active' : ''}`}
                   onClick={() => setActivePath(path)}
                 >
+                  <span className="wb-tab-file-icon" aria-hidden>
+                    <IconFile />
+                  </span>
                   <span className="wb-tab-name">
                     {dirty}
                     {label}
@@ -811,7 +1034,22 @@ export function WebIdeWorkbench({
             </div>
 
             {bottomExpanded ? (
-              <div className="wb-bottom" role="region" aria-label="Panel">
+              <div
+                className="wb-resize-h"
+                role="separator"
+                aria-orientation="horizontal"
+                aria-label="Resize bottom panel"
+                onMouseDown={beginPanelResize}
+              />
+            ) : null}
+
+            {bottomExpanded ? (
+              <div
+                className="wb-bottom"
+                style={{ flex: `0 0 ${bottomH}px`, minHeight: 120, maxHeight: 'min(50vh, 520px)' }}
+                role="region"
+                aria-label="Panel"
+              >
                 <div className="wb-bottom-tabs">
                   <button
                     type="button"
@@ -857,7 +1095,9 @@ export function WebIdeWorkbench({
                         <pre className="wb-output-pre">{agentOutput}</pre>
                       ) : (
                         <p className="wb-output-empty">
-                          {loading ? 'Streaming…' : 'Composer responses and logs appear here.'}
+                          {loading
+                            ? 'Streaming agent response…'
+                            : 'Run Composer to stream agent output here (same channel as desktop).'}
                         </p>
                       )}
                     </>
@@ -906,7 +1146,14 @@ export function WebIdeWorkbench({
           </div>
         </div>
 
-        <aside className="wb-composer" aria-label="Composer">
+        <div
+          className="wb-resize-v"
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize composer"
+          onMouseDown={beginComposerResize}
+        />
+        <aside className="wb-composer" style={{ width: composerW }} aria-label="Composer">
           {composer}
         </aside>
       </div>
@@ -915,17 +1162,44 @@ export function WebIdeWorkbench({
         <div className="wb-status-left">
           <button
             type="button"
-            className="wb-status-btn"
-            title={`Toggle sidebar (${accel('Ctrl+B')})`}
+            className="wb-status-btn wb-status-icononly"
+            title={`Toggle primary side bar (${accel('Ctrl+B')})`}
             onClick={() => setSidebarOpen((v) => !v)}
           >
             ☰
           </button>
-          <span className="wb-status-project">📁 {WEB_DEMO_PROJECT_NAME}</span>
+          <span className="wb-status-item wb-status-remote" title="Remote (demo)">
+            ⟨⟩
+          </span>
+          <span className="wb-status-item wb-status-branch" title="Git branch (demo)">
+            <span className="wb-status-branch-icon" aria-hidden>
+              ⑂
+            </span>
+            main
+          </span>
+          {problemTotalLines > 0 ? (
+            <button
+              type="button"
+              className="wb-status-item wb-status-errors"
+              title="Show problems"
+              onClick={() => {
+                setBottomExpanded(true);
+                setBottomTab('problems');
+              }}
+            >
+              <span aria-hidden>✕</span> {problemTotalLines > 99 ? '99+' : problemTotalLines}
+            </button>
+          ) : (
+            <span className="wb-status-item wb-status-errors wb-status-errors-clear" title="No problems">
+              <span aria-hidden>✕</span> 0
+            </span>
+          )}
+          <span className="wb-status-sep-bar" aria-hidden />
+          <span className="wb-status-project">{WEB_DEMO_PROJECT_NAME}</span>
           {activeBuffer ? (
             <span className="wb-status-file" title={activeBuffer.path}>
-              📄 {activeBuffer.name}
-              {activeBuffer.isDirty ? ' •' : ''}
+              {activeBuffer.name}
+              {activeBuffer.isDirty ? ' ●' : ''}
             </span>
           ) : null}
         </div>
@@ -948,36 +1222,13 @@ export function WebIdeWorkbench({
               {' '}
               ·{' '}
             </span>
-            <span className="wb-status-lang">{activeBuffer?.language ?? '—'}</span>
+            <span className="wb-status-eol">LF</span>
+            <span className="wb-status-sep" aria-hidden>
+              {' '}
+              ·{' '}
+            </span>
+            <span className="wb-status-lang">{activeBuffer?.language ?? 'Plain Text'}</span>
           </span>
-          <button
-            type="button"
-            className="wb-status-btn"
-            title="Quick open"
-            onClick={() => setQuickOpen(true)}
-          >
-            {accel('Ctrl+P')}
-          </button>
-          <button
-            type="button"
-            className="wb-status-btn"
-            title="Keyboard shortcuts"
-            onClick={() => setShortcutsOpen(true)}
-          >
-            ?
-          </button>
-          <button
-            type="button"
-            className="wb-status-btn"
-            title="Command palette"
-            onClick={() => setPaletteOpen(true)}
-          >
-            {accel('Ctrl+Shift+P')}
-          </button>
-          <button type="button" className="wb-status-btn" onClick={() => setBottomExpanded((v) => !v)}>
-            {accel('Ctrl+`')} Panel
-          </button>
-          <span className="wb-status-meta">Web IDE</span>
         </div>
       </footer>
 

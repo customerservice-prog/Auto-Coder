@@ -1,5 +1,6 @@
 'use client';
 
+import '@/components/web-ide/monaco-bootstrap';
 import dynamic from 'next/dynamic';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import type { editor } from 'monaco-editor';
@@ -43,6 +44,10 @@ export function WebMonacoPane({
       minimap: { enabled: Boolean(minimapEnabled), scale: 0.85, maxColumn: 120 },
       fontSize: 13,
       lineHeight: 20,
+      lineNumbers: 'on',
+      lineNumbersMinChars: 3,
+      glyphMargin: true,
+      folding: true,
       padding: { top: 8, bottom: 8 },
       scrollBeyondLastLine: false,
       wordWrap: 'on',
@@ -89,16 +94,18 @@ export function WebMonacoPane({
   );
 
   return (
-    <MonacoEditor
-      key={path}
-      height="100%"
-      theme="vs-dark"
-      path={path}
-      language={language}
-      value={value}
-      options={options}
-      onMount={onMount}
-      onChange={readOnly ? undefined : (v) => onChange?.(v ?? '')}
-    />
+    <div className="wb-monaco-root">
+      <MonacoEditor
+        key={path}
+        height="100%"
+        theme="vs-dark"
+        path={path}
+        language={language}
+        value={value}
+        options={options}
+        onMount={onMount}
+        onChange={readOnly ? undefined : (v) => onChange?.(v ?? '')}
+      />
+    </div>
   );
 }

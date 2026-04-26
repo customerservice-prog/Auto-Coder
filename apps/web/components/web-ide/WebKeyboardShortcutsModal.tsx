@@ -14,6 +14,7 @@ const ROWS: { keys: string; desc: string }[] = [
   { keys: 'Ctrl+P', desc: 'Quick open (go to file)' },
   { keys: 'Ctrl+G', desc: 'Go to line (or line:column) when the editor is focused' },
   { keys: 'Ctrl+F', desc: 'Find in current file (Monaco find widget)' },
+  { keys: 'Ctrl+H', desc: 'Replace in current file (find + replace widget)' },
   { keys: 'Ctrl+Shift+F', desc: 'Open Search in the side bar' },
   { keys: 'Ctrl+Shift+/', desc: 'This shortcuts list' },
   { keys: 'Ctrl+Alt+Z', desc: 'Toggle zen mode (hide chrome)' },

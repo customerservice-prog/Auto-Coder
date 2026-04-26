@@ -178,11 +178,12 @@ export default function DashboardPage() {
 
         <button
           type="button"
-          className="ide-submit"
+          className="ide-submit ide-submit-send"
           disabled={loading || !mission.trim()}
           onClick={runAssistant}
+          aria-label={loading ? 'Generating' : 'Send to agent'}
         >
-          {loading ? 'Generating…' : 'Submit'}
+          {loading ? <span className="ide-submit-loading">Generating…</span> : <span className="ide-submit-arrow">↑</span>}
         </button>
         {quotaHint ? <p className="ide-quota">{quotaHint}</p> : null}
       </div>
