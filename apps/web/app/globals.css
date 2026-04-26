@@ -1387,6 +1387,11 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
   font-size: 13px;
 }
 
+.wb-monaco-loading-silent {
+  background: #1e1e1e;
+  color: transparent;
+}
+
 .wb-welcome {
   height: 100%;
   display: flex;
@@ -2930,6 +2935,12 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
   font-size: 11px;
 }
 
+.web-dash-root .wb-app-boot-silent {
+  flex: 1;
+  min-height: 0;
+  background: var(--wb-editor);
+}
+
 .web-dash-root .wb-app-boot-label {
   letter-spacing: 0.02em;
 }
@@ -3271,13 +3282,13 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
   outline-offset: -1px;
 }
 
-/* Native-ish scroll: smooth + thin scrollbars */
+/* Tight scroll — no smooth-scroll lag while streaming */
 .web-dash-root .wb-file-tree-scroll,
 .web-dash-root .wb-composer-stack-flat,
 .web-dash-root .wb-bottom-body,
 .web-dash-root .wb-search-sidebar,
 .web-dash-root .wb-scm-panel {
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
   scrollbar-gutter: stable;
 }
 
@@ -3315,14 +3326,9 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
 }
 
 .web-dash-root .wb-output-pre {
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
   overflow-anchor: auto;
   line-height: 1.32;
-  transition: opacity var(--wb-t-hover) var(--wb-ease-out);
-}
-
-.web-dash-root .wb-output-empty {
-  transition: opacity var(--wb-t-hover) var(--wb-ease-out);
 }
 
 .web-dash-root .wb-monaco-loading {
@@ -3330,6 +3336,23 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
   color: var(--wb-text-3);
   letter-spacing: 0.04em;
   animation: wb-monaco-load-fade 1.4s ease-out infinite;
+}
+
+.web-dash-root .wb-monaco-loading-silent {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  background: var(--wb-editor);
+  animation: none;
+}
+
+.web-dash-root .wb-status-stream-quiet {
+  color: var(--wb-text-3);
+  font-size: 10px;
+}
+
+.web-dash-root .wb-composer-submit-busy .wb-composer-submit-glyph {
+  opacity: 0.45;
 }
 
 @keyframes wb-monaco-load-fade {

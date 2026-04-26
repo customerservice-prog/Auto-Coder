@@ -17,9 +17,11 @@ import { WebMonacoPane } from '@/components/web-ide/WebMonacoPane';
 import { WebCommandPalette, type PaletteItem } from '@/components/web-ide/WebCommandPalette';
 import { WebContextMenu, type ContextMenuItem } from '@/components/web-ide/WebContextMenu';
 import {
+  loadEditorViewStates,
   loadRecentCommandIds,
   loadWorkbenchPersisted,
   recordRecentCommandId,
+  saveEditorViewStates,
   saveWorkbenchPersisted,
   type WorkbenchPersisted,
 } from '@/components/web-ide/workbench-persist';
@@ -250,8 +252,19 @@ export function WebIdeWorkbench({
   const activePathRef = useRef(activePath);
   const buffersRef = useRef(buffers);
   const monacoEditorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
-  const viewStatesRef = useRef<Record<string, editor.ICodeEditorViewState | null>>({});
   const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const editorViewsSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const [editorViewStates, setEditorViewStates] = useState<Record<string, editor.ICodeEditorViewState | null>>(() => {
+    if (typeof window === 'undefined') return {};
+    const raw = loadEditorViewStates();
+    if (!raw) return {};
+    const out: Record<string, editor.ICodeEditorViewState | null> = {};
+    for (const [k, v] of Object.entries(raw)) {
+      if (v != null && typeof v === 'object') out[k] = v as editor.ICodeEditorViewState;
+    }
+    return out;
+  });
   const explorerTreeRef = useRef<HTMLDivElement | null>(null);
   const closeTabRef = useRef<(path: string, e?: ReactMouseEvent) => void>(() => {});
   const bottomBodyRef = useRef<HTMLDivElement | null>(null);
@@ -428,6 +441,16 @@ export function WebIdeWorkbench({
     expandedDirs,
     buffers,
   ]);
+
+  useEffect(() => {
+    if (editorViewsSaveTimerRef.current) clearTimeout(editorViewsSaveTimerRef.current);
+    editorViewsSaveTimerRef.current = setTimeout(() => {
+      saveEditorViewStates(editorViewStates as unknown as Record<string, unknown | null>);
+    }, 400);
+    return () => {
+      if (editorViewsSaveTimerRef.current) clearTimeout(editorViewsSaveTimerRef.current);
+    };
+  }, [editorViewStates]);
 
   useEffect(() => {
     if (!activeBuffer) {
@@ -888,7 +911,7 @@ export function WebIdeWorkbench({
   );
 
   const onSaveViewState = useCallback((p: string, state: editor.ICodeEditorViewState | null) => {
-    viewStatesRef.current[p] = state;
+    setEditorViewStates((prev) => ({ ...prev, [p]: state }));
   }, []);
 
   const onEditorChange = useCallback(
@@ -1108,19 +1131,10 @@ export function WebIdeWorkbench({
 
   const statusLabel = useMemo((): ReactNode => {
     if (loading) {
-      return (
-        <span className="wb-status-stream">
-          <span className="wb-status-stream-text">Web agent</span>
-          <span className="wb-status-stream-dots" aria-hidden>
-            <span />
-            <span />
-            <span />
-          </span>
-        </span>
-      );
+      return <span className="wb-status-stream wb-status-stream-quiet">Agent</span>;
     }
-    if (agentError) return 'Request error';
-    if (agentOutput.trim()) return 'Output ready';
+    if (agentError) return 'Error';
+    if (agentOutput.trim()) return 'Ready';
     return 'Ready';
   }, [loading, agentError, agentOutput]);
 
@@ -1461,7 +1475,7 @@ export function WebIdeWorkbench({
                   value={activeBuffer.content}
                   readOnly={activeBuffer.path === AGENT_STREAM_PATH}
                   minimapEnabled={minimapEnabled}
-                  savedViewState={viewStatesRef.current[activeBuffer.path] ?? null}
+                  savedViewState={editorViewStates[activeBuffer.path] ?? null}
                   onSaveViewState={onSaveViewState}
                   onChange={onEditorChange}
                   onEditorReady={onMonacoReady}

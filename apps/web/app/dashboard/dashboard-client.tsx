@@ -20,16 +20,7 @@ const WebIdeWorkbench = dynamic<WebIdeWorkbenchProps>(
   () => import('@/components/web-ide/WebIdeWorkbench').then((m) => ({ default: m.WebIdeWorkbench })),
   {
     ssr: false,
-    loading: () => (
-      <div className="wb-app wb-app-boot" role="status" aria-live="polite">
-        <span className="wb-app-boot-label">Loading workspace</span>
-        <span className="wb-app-boot-dots" aria-hidden>
-          <span />
-          <span />
-          <span />
-        </span>
-      </div>
-    ),
+    loading: () => <div className="wb-app wb-app-boot wb-app-boot-silent" aria-hidden />,
   },
 );
 
@@ -94,6 +85,15 @@ export function DashboardClient() {
     setError(null);
     setOutput('');
     setQuotaHint(null);
+    const outputBuf = { current: '' };
+    let raf: number | null = null;
+    const scheduleFlush = () => {
+      if (raf != null) return;
+      raf = requestAnimationFrame(() => {
+        raf = null;
+        setOutput(outputBuf.current);
+      });
+    };
     try {
       const res = await fetch('/api/agent', {
         method: 'POST',
@@ -112,10 +112,8 @@ export function DashboardClient() {
       const dayUsed = res.headers.get('X-Agent-Quota-Daily-Used');
       const dayLim = res.headers.get('X-Agent-Quota-Daily-Limit');
       if (rem != null && lim != null) {
-        const hint = `This window: ${rem} / ${lim} requests left.`;
-        setQuotaHint(
-          dayUsed != null && dayLim != null ? `${hint} Today: ${dayUsed} / ${dayLim}.` : hint
-        );
+        const hint = `${rem}/${lim}`;
+        setQuotaHint(dayUsed != null && dayLim != null ? `${hint} · ${dayUsed}/${dayLim}` : hint);
       }
 
       const reader = res.body?.getReader();
@@ -125,16 +123,21 @@ export function DashboardClient() {
       }
 
       const dec = new TextDecoder();
-      let text = '';
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
-        text += dec.decode(value, { stream: true });
-        setOutput(text);
+        outputBuf.current += dec.decode(value, { stream: true });
+        scheduleFlush();
       }
+      if (raf != null) {
+        cancelAnimationFrame(raf);
+        raf = null;
+      }
+      setOutput(outputBuf.current);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
+      if (raf != null) cancelAnimationFrame(raf);
       setLoading(false);
     }
   }
@@ -154,7 +157,6 @@ export function DashboardClient() {
             className="wb-composer-model"
             value={model}
             onChange={(e) => setModel(e.target.value as ModelId)}
-            disabled={loading}
             aria-label="Model"
           >
             <option value="claude">Claude Sonnet</option>
@@ -162,52 +164,42 @@ export function DashboardClient() {
             <option value="deepseek">DeepSeek</option>
           </select>
         </div>
-        <p className="wb-composer-micro-inline">
-          <span className="wb-composer-micro-muted">Streams to Output ·</span>{' '}
-          <code className="ide-code-inline wb-composer-code">.env</code>
-        </p>
       </div>
       <div className="wb-composer-stack wb-composer-stack-flat">
-        <label className="wb-composer-sec">
-          <span className="wb-composer-sec-label">Context</span>
+        <div className="wb-composer-sec">
           <textarea
             className="wb-composer-field wb-composer-context"
             value={projectContext}
             onChange={(e) => setProjectContext(e.target.value)}
-            placeholder="@workspace — paths, errors, snippets…"
+            placeholder="Context"
+            aria-label="Context"
             maxLength={AGENT_PROJECT_CONTEXT_MAX_CHARS}
-            disabled={loading}
             spellCheck={false}
           />
-        </label>
-        <label className="wb-composer-sec wb-composer-sec-grow">
-          <span className="wb-composer-sec-label">Mission</span>
+        </div>
+        <div className="wb-composer-sec wb-composer-sec-grow">
           <textarea
             data-composer-mission
             className="wb-composer-field wb-composer-mission"
             value={mission}
             onChange={(e) => setMission(e.target.value)}
-            placeholder="What should the agent do?"
+            placeholder="Input"
+            aria-label="Input"
             maxLength={AGENT_MISSION_MAX_CHARS}
-            disabled={loading}
             spellCheck={false}
           />
-        </label>
+        </div>
         <div className="wb-composer-sendbar">
           <button
             type="button"
-            className="wb-composer-submit"
+            className={`wb-composer-submit${loading ? ' wb-composer-submit-busy' : ''}`}
             disabled={loading || !mission.trim()}
             onClick={runAssistant}
-            aria-label={loading ? 'Generating' : 'Send to agent'}
+            aria-label={loading ? 'Running' : 'Send'}
           >
-            {loading ? (
-              <span className="wb-composer-submit-text">Generating…</span>
-            ) : (
-              <span className="wb-composer-submit-glyph" aria-hidden>
-                ↑
-              </span>
-            )}
+            <span className="wb-composer-submit-glyph" aria-hidden>
+              ↑
+            </span>
           </button>
         </div>
         {quotaHint ? <p className="wb-composer-quota">{quotaHint}</p> : null}
@@ -230,7 +222,7 @@ export function DashboardClient() {
         </div>
         <div className="wb-chrome-center">
           <Link href="/" className="wb-app-title">
-            Auto-Coder
+            Workspace
           </Link>
         </div>
         <div className="ide-titlebar-right wb-chrome-right">
@@ -244,15 +236,13 @@ export function DashboardClient() {
 
       {!isClerkEnabled() ? (
         <p className="ide-dev-strip wb-env-notice" role="status">
-          Local mode — sign-in off. Add real Clerk keys in <code className="ide-code-inline">.env</code> when you deploy;
-          the API still runs with your model keys.
+          Local mode — Clerk disabled. Set keys in <code className="ide-code-inline">.env</code>.
         </p>
       ) : null}
 
       {checkoutSuccessBanner ? (
         <p className="ide-checkout-banner dash-banner dash-banner-success" role="status">
-          Checkout complete — we refreshed your Clerk session; the Pro badge appears once Stripe webhooks sync (usually
-          within seconds).
+          Checkout complete — session updated.
         </p>
       ) : null}
 

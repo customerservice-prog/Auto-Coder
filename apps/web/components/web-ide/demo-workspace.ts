@@ -14,8 +14,8 @@ export const WEB_DEMO_PROJECT_NAME = 'web-workspace';
 export const AGENT_STREAM_PATH = 'web-demo/AGENT_STREAM.md';
 
 export function formatAgentStreamMd(output: string, err: string | null, busy: boolean): string {
-  const lines: string[] = ['# Agent stream', ''];
-  if (busy) lines.push('_Streaming…_', '');
+  const lines: string[] = ['# Output', ''];
+  if (busy && !output.trim()) lines.push('_…_', '');
   if (err) {
     lines.push('## Error', '', '```text', err, '```', '');
   }
@@ -23,7 +23,7 @@ export function formatAgentStreamMd(output: string, err: string | null, busy: bo
     lines.push('## Response', '', '```text', output, '```', '');
   }
   if (!busy && !err && !output.trim()) {
-    lines.push('_No output yet — run a mission from Composer._', '');
+    lines.push('_Empty._', '');
   }
   return lines.join('\n');
 }

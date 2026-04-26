@@ -6,11 +6,7 @@ import type { editor } from 'monaco-editor';
 
 const MonacoEditor = dynamic(() => import('@monaco-editor/react'), {
   ssr: false,
-  loading: () => (
-    <div className="wb-monaco-loading" aria-busy="true">
-      Loading editor…
-    </div>
-  ),
+  loading: () => <div className="wb-monaco-loading wb-monaco-loading-silent" aria-hidden />,
 });
 
 export interface WebMonacoPaneProps {
@@ -76,7 +72,7 @@ export function WebMonacoPane({
       padding: { top: 1, bottom: 1 },
       scrollBeyondLastLine: false,
       wordWrap: 'on',
-      smoothScrolling: true,
+      smoothScrolling: false,
       scrollbar: {
         vertical: 'auto',
         horizontal: 'auto',
@@ -84,7 +80,7 @@ export function WebMonacoPane({
         horizontalScrollbarSize: 8,
         useShadows: false,
       },
-      cursorBlinking: 'smooth',
+      cursorBlinking: 'solid',
       cursorStyle: 'line',
       cursorWidth: 1,
       renderLineHighlight: 'line',
@@ -170,9 +166,7 @@ export function WebMonacoPane({
   return (
     <div className="wb-monaco-root">
       {!monacoLoaderReady ? (
-        <div className="wb-monaco-loading" aria-busy="true">
-          Loading editor…
-        </div>
+        <div className="wb-monaco-loading wb-monaco-loading-silent" aria-hidden />
       ) : (
         <MonacoEditor
           key={path}
