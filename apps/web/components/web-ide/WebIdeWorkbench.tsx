@@ -133,7 +133,7 @@ function DemoTree(props: {
               <button
                 type="button"
                 className="wb-tree-row"
-                style={{ paddingLeft: 5 + depth * 5 }}
+                style={{ paddingLeft: 3 + depth * 4 }}
                 onClick={() => toggleDir(node.path)}
               >
                 <span
@@ -165,7 +165,7 @@ function DemoTree(props: {
             <button
               type="button"
               className={`wb-tree-row wb-tree-file ${activeFile === node.path ? 'wb-tree-active' : ''} ${selectedFile === node.path ? 'wb-tree-selected' : ''}`}
-              style={{ paddingLeft: 5 + depth * 5 }}
+              style={{ paddingLeft: 3 + depth * 4 }}
               onClick={(e) => {
                 if (e.ctrlKey || e.metaKey) {
                   e.preventDefault();
@@ -229,9 +229,9 @@ export function WebIdeWorkbench({
   const [bottomExpanded, setBottomExpanded] = useState(true);
   const [bottomTab, setBottomTab] = useState<BottomTab>('output');
   const [minimapEnabled, setMinimapEnabled] = useState(true);
-  const [sidebarW, setSidebarW] = useState(256);
-  const [composerW, setComposerW] = useState(300);
-  const [bottomH, setBottomH] = useState(200);
+  const [sidebarW, setSidebarW] = useState(216);
+  const [composerW, setComposerW] = useState(272);
+  const [bottomH, setBottomH] = useState(180);
   const layoutDragRef = useRef<{ kind: 'sb' | 'comp' | 'panel'; start: number; initial: number } | null>(null);
   const [cursorLine, setCursorLine] = useState(1);
   const [cursorCol, setCursorCol] = useState(1);
@@ -284,10 +284,10 @@ export function WebIdeWorkbench({
       if (!d) return;
       if (d.kind === 'sb') {
         const dx = e.clientX - d.start;
-        setSidebarW((w) => Math.min(520, Math.max(180, d.initial + dx)));
+        setSidebarW((w) => Math.min(480, Math.max(156, d.initial + dx)));
       } else if (d.kind === 'comp') {
         const dx = d.start - e.clientX;
-        setComposerW((w) => Math.min(360, Math.max(248, d.initial + dx)));
+        setComposerW((w) => Math.min(336, Math.max(232, d.initial + dx)));
       } else {
         const dy = d.start - e.clientY;
         setBottomH((h) => Math.min(520, Math.max(120, d.initial + dy)));
@@ -360,8 +360,8 @@ export function WebIdeWorkbench({
     const p = loadWorkbenchPersisted();
     if (!p) return;
     if (typeof p.sidebarOpen === 'boolean') setSidebarOpen(p.sidebarOpen);
-    if (typeof p.sidebarW === 'number' && p.sidebarW >= 180 && p.sidebarW <= 520) setSidebarW(p.sidebarW);
-    if (typeof p.composerW === 'number' && p.composerW >= 248 && p.composerW <= 360) setComposerW(p.composerW);
+    if (typeof p.sidebarW === 'number' && p.sidebarW >= 156 && p.sidebarW <= 480) setSidebarW(p.sidebarW);
+    if (typeof p.composerW === 'number' && p.composerW >= 232 && p.composerW <= 336) setComposerW(p.composerW);
     if (typeof p.bottomH === 'number' && p.bottomH >= 120 && p.bottomH <= 520) setBottomH(p.bottomH);
     if (typeof p.bottomExpanded === 'boolean') setBottomExpanded(p.bottomExpanded);
     if (p.activityView === 'explorer' || p.activityView === 'search' || p.activityView === 'scm') {
@@ -1504,7 +1504,7 @@ export function WebIdeWorkbench({
             {bottomExpanded ? (
               <div
                 className="wb-bottom"
-                style={{ flex: `0 0 ${bottomH}px`, minHeight: 96, maxHeight: 'min(50vh, 480px)' }}
+                style={{ flex: `0 0 ${bottomH}px`, minHeight: 80, maxHeight: 'min(50vh, 440px)' }}
                 role="region"
                 aria-label="Panel"
               >

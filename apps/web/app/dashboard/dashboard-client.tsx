@@ -143,7 +143,7 @@ export function DashboardClient() {
   }
 
   const composer = (
-    <>
+    <div className="wb-composer-surface">
       <div className="wb-composer-chrome">
         <div className="wb-composer-headrow">
           <div className="wb-composer-path" aria-label="Composer context">
@@ -204,7 +204,7 @@ export function DashboardClient() {
         </div>
         {quotaHint ? <p className="wb-composer-quota">{quotaHint}</p> : null}
       </div>
-    </>
+    </div>
   );
 
   return (
@@ -221,8 +221,8 @@ export function DashboardClient() {
           </nav>
         </div>
         <div className="wb-chrome-center">
-          <Link href="/" className="wb-app-title">
-            Workspace
+          <Link href="/" className="wb-app-title" title="Home">
+            web-workspace
           </Link>
         </div>
         <div className="ide-titlebar-right wb-chrome-right">
