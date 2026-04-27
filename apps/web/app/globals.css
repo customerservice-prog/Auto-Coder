@@ -637,13 +637,13 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
   --ide-font-ui: 12px;
   --ide-font-small: 11px;
   --ide-line-ui: 18px;
-  --ide-row-height: 22px;
+  --ide-row-height: 20px;
   --ide-border: rgba(255, 255, 255, 0.055);
-  --ide-hover: rgba(255, 255, 255, 0.026);
-  --ide-active: rgba(255, 255, 255, 0.052);
-  --ide-text: rgba(255, 255, 255, 0.8);
-  --ide-text-muted: rgba(255, 255, 255, 0.44);
-  --ide-text-dim: rgba(255, 255, 255, 0.26);
+  --ide-hover: rgba(255, 255, 255, 0.022);
+  --ide-active: rgba(255, 255, 255, 0.048);
+  --ide-text: rgba(255, 255, 255, 0.74);
+  --ide-text-muted: rgba(255, 255, 255, 0.39);
+  --ide-text-dim: rgba(255, 255, 255, 0.21);
   --wb-editor: #1e1e1e;
   --wb-chrome: #111111;
   --wb-tabs-bar: #111111;
@@ -2188,7 +2188,9 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
 .web-dash-root .composer,
 .web-dash-root .composer-shell,
 .web-dash-root .composer-top,
+.web-dash-root .composer-new-agent,
 .web-dash-root .composer-stream,
+.web-dash-root .composer-stream-ghost,
 .web-dash-root .composer-inputbar,
 .web-dash-root .composer-prompt,
 .web-dash-root .composer-inputbar textarea,
@@ -2211,6 +2213,9 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
 .web-dash-root .wb-tab-close,
 .web-dash-root .wb-open-editor-row,
 .web-dash-root .wb-tree-row,
+.web-dash-root .wb-repo-block,
+.web-dash-root .wb-repo-input,
+.web-dash-root .wb-repo-notes,
 .web-dash-root .ide-toolbar-btn,
 .web-dash-root .wb-output-error {
   border-radius: 0 !important;
@@ -2255,13 +2260,14 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
   height: 28px;
   font-size: var(--ide-font-ui);
   font-weight: 400;
-  color: rgba(255, 255, 255, 0.2);
+  letter-spacing: -0.01em;
+  color: rgba(255, 255, 255, 0.13);
   user-select: none;
   cursor: default;
 }
 
 .web-dash-root .wb-menu-item.topbar-menu-item:hover {
-  color: rgba(255, 255, 255, 0.32);
+  color: rgba(255, 255, 255, 0.24);
   background: var(--ide-hover);
 }
 
@@ -2275,7 +2281,7 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
   font-size: var(--ide-font-ui);
   font-weight: 400;
   color: var(--ide-text-dim);
-  opacity: 0.72;
+  opacity: 0.64;
   text-decoration: none;
   letter-spacing: 0;
   font-family: ui-monospace, Menlo, Consolas, monospace;
@@ -2438,14 +2444,34 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
   padding: 0 4px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
+  gap: 4px;
   border-bottom: none;
   color: var(--ide-text-dim);
   font-size: var(--ide-font-small);
 }
 
+.web-dash-root .composer-new-agent {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0 3px;
+  border: none;
+  background: transparent;
+  color: var(--ide-text-dim);
+  font-size: var(--ide-font-small);
+  font-family: inherit;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.55;
+}
+
+.web-dash-root .composer-new-agent:hover {
+  opacity: 0.85;
+  color: var(--ide-text-muted);
+}
+
 .web-dash-root .composer-title {
-  flex: 1;
+  flex: 1 1 0;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2477,15 +2503,32 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
 }
 
 .web-dash-root .composer-stream {
+  position: relative;
   flex: 1 1 0;
   min-height: 0;
   overflow: auto;
   display: flex;
   flex-direction: column;
-  padding: 2px 4px;
+  padding: 0 3px;
   margin: 0;
   color: var(--ide-text-dim);
   background: #0c0c0c;
+}
+
+.web-dash-root .composer-stream-ghost {
+  position: absolute;
+  left: 3px;
+  top: 0;
+  right: 6px;
+  pointer-events: none;
+  user-select: none;
+  font-size: var(--ide-font-small);
+  line-height: 1.3;
+  font-family: ui-monospace, Menlo, Consolas, 'Cascadia Mono', monospace;
+  color: rgba(255, 255, 255, 0.055);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .web-dash-root .composer-stream-err {
@@ -2505,7 +2548,7 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
   font-size: var(--ide-font-small);
   line-height: 1.32;
   font-family: ui-monospace, Menlo, Consolas, 'Cascadia Mono', monospace;
-  color: rgba(255, 255, 255, 0.24);
+  color: rgba(255, 255, 255, 0.2);
   white-space: pre-wrap;
   word-break: break-word;
   background: transparent;
@@ -2522,9 +2565,9 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
   overflow: hidden;
   border-top: 1px solid var(--ide-border);
   display: flex;
-  align-items: center;
-  gap: 2px;
-  padding: 2px 4px;
+  align-items: flex-end;
+  gap: 1px;
+  padding: 1px 3px 2px;
   background: #0c0c0c;
 }
 
@@ -2611,13 +2654,49 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
 }
 
 .web-dash-root .wb-file-tree-header {
-  padding: 3px 4px 4px;
+  padding: 2px 3px 3px;
   border-bottom: 1px solid var(--wb-border);
 }
 
 .web-dash-root .wb-project-name {
   font-size: var(--ide-font-small);
   color: var(--wb-text-3);
+}
+
+.web-dash-root .wb-repo-block {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 2px 4px 4px;
+  border-bottom: 1px solid var(--wb-border);
+}
+
+.web-dash-root .wb-repo-block-title {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--wb-text-3);
+}
+
+.web-dash-root .wb-repo-input,
+.web-dash-root .wb-repo-notes {
+  width: 100%;
+  box-sizing: border-box;
+  font-size: var(--ide-font-small);
+  font-family: inherit;
+  line-height: 1.25;
+  border: 1px solid var(--ide-border);
+  background: rgba(0, 0, 0, 0.28);
+  color: var(--ide-text-muted);
+  padding: 2px 4px;
+  border-radius: 0;
+  resize: none;
+}
+
+.web-dash-root .wb-repo-notes {
+  min-height: 2.25em;
 }
 
 .web-dash-root .wb-open-editors-label {
@@ -2637,7 +2716,7 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
 }
 
 .web-dash-root .wb-open-editor-main {
-  padding: 1px 2px 1px 3px;
+  padding: 1px 2px 1px 2px;
 }
 
 .web-dash-root .wb-open-editor-name {
@@ -2656,7 +2735,7 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
 
 .web-dash-root .wb-tree-row {
   padding: 0 1px;
-  min-height: 22px;
+  min-height: 20px;
   border-radius: 0;
   gap: 0;
 }
@@ -2703,16 +2782,23 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
 .web-dash-root .wb-tree-chevron {
   color: var(--wb-text-3);
   font-size: 8px;
-  width: 9px;
-  opacity: 0.65;
+  width: 8px;
+  opacity: 0.62;
 }
 
 .web-dash-root .wb-sidebar.explorer .explorer-row {
+  display: flex;
+  align-items: center;
   height: var(--ide-row-height);
   min-height: var(--ide-row-height);
-  padding: 0 4px;
+  padding: 0 3px;
   font-size: var(--ide-font-small);
   box-sizing: border-box;
+  gap: 0;
+}
+
+.web-dash-root .wb-sidebar.explorer .explorer-row .wb-tree-label {
+  margin-left: -2px;
 }
 
 .web-dash-root .wb-sidebar.explorer .explorer-row:hover {
@@ -2720,9 +2806,9 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
 }
 
 .web-dash-root .wb-sidebar.explorer .explorer-row svg {
-  width: 13px;
-  height: 13px;
-  opacity: 0.55;
+  width: 12px;
+  height: 12px;
+  opacity: 0.52;
 }
 
 .web-dash-root .wb-main {
@@ -2738,9 +2824,9 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
 .web-dash-root .wb-tab {
   min-width: 0;
   max-width: 200px;
-  padding: 0 4px;
+  padding: 0 3px;
   font-size: var(--ide-font-small);
-  gap: 2px;
+  gap: 1px;
   border-right: 1px solid var(--wb-border);
   color: var(--wb-text-3);
   background: var(--wb-tab-inactive);
@@ -2944,7 +3030,7 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
 }
 
 .web-dash-root .wb-bottom.bottom-panel .wb-bottom-body {
-  padding: 2px 3px 3px;
+  padding: 1px 3px 2px;
   background: var(--wb-editor);
 }
 
@@ -2961,13 +3047,17 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
 }
 
 .web-dash-root .wb-output-empty {
-  color: var(--ide-text-dim);
+  margin: 0;
+  padding: 1px 0 0;
+  color: rgba(255, 255, 255, 0.18);
 }
 
 .web-dash-root .wb-terminal-placeholder {
+  margin: 0;
+  padding: 2px 4px 1px;
   font-size: var(--ide-font-small);
-  line-height: 1.26;
-  color: var(--ide-text-dim);
+  line-height: 1.22;
+  color: rgba(255, 255, 255, 0.18);
 }
 
 .web-dash-root .wb-terminal-placeholder strong {
@@ -2997,26 +3087,26 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
 .web-dash-root .wb-status-bar.statusbar {
   height: 21px;
   padding: 0 4px;
-  background: #121212;
-  color: var(--ide-text-dim);
+  background: #0e0e0e;
+  color: rgba(255, 255, 255, 0.2);
   border-top: 1px solid var(--ide-border);
   font-size: var(--ide-font-small);
   font-weight: 400;
 }
 
 .web-dash-root .wb-status-bar.statusbar .wb-status-btn {
-  color: var(--ide-text-dim);
+  color: rgba(255, 255, 255, 0.2);
   padding: 0 3px;
   font-size: var(--ide-font-small);
 }
 
 .web-dash-root .wb-status-bar.statusbar .wb-status-btn:hover {
   background: rgba(255, 255, 255, 0.02);
-  color: var(--ide-text-dim);
+  color: rgba(255, 255, 255, 0.24);
 }
 
 .web-dash-root .wb-status-bar.statusbar .wb-status-item {
-  color: var(--ide-text-dim);
+  color: rgba(255, 255, 255, 0.2);
   font-size: var(--ide-font-small);
 }
 
@@ -3025,16 +3115,16 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
 }
 
 .web-dash-root .wb-status-bar.statusbar .wb-status-agent {
-  color: var(--ide-text-dim);
+  color: rgba(255, 255, 255, 0.2);
 }
 
 .web-dash-root .wb-status-bar.statusbar .wb-status-project,
 .web-dash-root .wb-status-bar.statusbar .wb-status-file {
-  color: var(--ide-text-dim);
+  color: rgba(255, 255, 255, 0.2);
 }
 
 .web-dash-root .wb-status-bar.statusbar .wb-status-editor-meta {
-  color: var(--ide-text-dim);
+  color: rgba(255, 255, 255, 0.2);
   font-size: var(--ide-font-small);
 }
 
@@ -3474,7 +3564,7 @@ html, body { background: var(--bg); color: var(--text); font-family: -apple-syst
 }
 
 .web-dash-root .wb-status-stream-quiet {
-  color: var(--ide-text-dim);
+  color: rgba(255, 255, 255, 0.2);
   font-size: var(--ide-font-small);
 }
 

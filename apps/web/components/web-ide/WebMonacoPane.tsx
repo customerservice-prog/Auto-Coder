@@ -70,7 +70,7 @@ export function WebMonacoPane({
       glyphMargin: false,
       folding: true,
       overviewRulerBorder: false,
-      padding: { top: 1, bottom: 1 },
+      padding: { top: 0, bottom: 1 },
       scrollBeyondLastLine: false,
       wordWrap: 'on',
       smoothScrolling: false,

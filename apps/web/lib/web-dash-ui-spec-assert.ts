@@ -63,7 +63,7 @@ export function runWorkbenchLayoutAssertions(wbApp: HTMLElement | null): void {
   const explorerRow = root.querySelector<HTMLElement>('.wb-sidebar.explorer .explorer-row');
   if (explorerRow) {
     const h = explorerRow.getBoundingClientRect().height;
-    if (!approx(h, 22, 0.5)) mismatch('explorer row height 22px', `${h.toFixed(1)}px`);
+    if (!approx(h, 20, 0.5)) mismatch('explorer row height 20px', `${h.toFixed(1)}px`);
   }
 
   const tabBar = root.querySelector<HTMLElement>('.wb-tab-bar');

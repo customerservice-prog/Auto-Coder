@@ -30,6 +30,7 @@ import { WebQuickOpen } from '@/components/web-ide/WebQuickOpen';
 import { WebKeyboardShortcutsModal } from '@/components/web-ide/WebKeyboardShortcutsModal';
 import { WebGoToLine } from '@/components/web-ide/WebGoToLine';
 import { WebSearchPanel } from '@/components/web-ide/WebSearchPanel';
+import type { WebWorkspaceRepoMeta } from '@/lib/web-workspace-repo';
 import {
   IconAccount,
   IconExplorer,
@@ -135,7 +136,7 @@ function DemoTree(props: {
               <button
                 type="button"
                 className="wb-tree-row explorer-row"
-                style={{ paddingLeft: 1 + depth * 2 }}
+                style={{ paddingLeft: 1 + depth }}
                 onClick={() => toggleDir(node.path)}
               >
                 <span
@@ -167,7 +168,7 @@ function DemoTree(props: {
             <button
               type="button"
               className={`wb-tree-row explorer-row wb-tree-file ${activeFile === node.path ? 'wb-tree-active explorer-row-active' : ''} ${selectedFile === node.path ? 'wb-tree-selected' : ''}`}
-              style={{ paddingLeft: 1 + depth * 2 }}
+              style={{ paddingLeft: 1 + depth }}
               onClick={(e) => {
                 if (e.ctrlKey || e.metaKey) {
                   e.preventDefault();
@@ -207,6 +208,11 @@ export interface WebIdeWorkbenchProps {
   agentError: string | null;
   loading: boolean;
   onClearAgentOutput?: () => void;
+  /** Linked Git remote + notes — sent as agent `projectContext` from the dashboard. */
+  repoMeta: WebWorkspaceRepoMeta;
+  onRepoMetaChange: (next: WebWorkspaceRepoMeta) => void;
+  /** Clears composer mission + stream; parent also clears agent output/errors. */
+  onBeginNewAgentSession?: () => void;
 }
 
 export function WebIdeWorkbench({
@@ -215,6 +221,9 @@ export function WebIdeWorkbench({
   agentError,
   loading,
   onClearAgentOutput,
+  repoMeta,
+  onRepoMetaChange,
+  onBeginNewAgentSession,
 }: WebIdeWorkbenchProps) {
   const router = useRouter();
   const [activityView, setActivityView] = useState<ActivityView>('explorer');
@@ -233,7 +242,7 @@ export function WebIdeWorkbench({
   const [minimapEnabled, setMinimapEnabled] = useState(true);
   const [sidebarW, setSidebarW] = useState(240);
   const [composerW, setComposerW] = useState(310);
-  const [bottomH, setBottomH] = useState(158);
+  const [bottomH, setBottomH] = useState(145);
   const layoutDragRef = useRef<{ kind: 'sb' | 'comp' | 'panel'; start: number; initial: number } | null>(null);
   const wbAppRef = useRef<HTMLDivElement | null>(null);
   const [cursorLine, setCursorLine] = useState(1);
@@ -349,12 +358,23 @@ export function WebIdeWorkbench({
 
   const activeBuffer = buffers[activePath];
 
+  const searchFileIndex = useMemo(() => {
+    const out: Record<string, { name: string; content: string }> = {};
+    for (const [path, init] of Object.entries(DEMO_BUFFERS)) {
+      out[path] = { name: init.name, content: init.content };
+    }
+    for (const [path, buf] of Object.entries(buffers)) {
+      out[path] = { name: buf.name, content: buf.content };
+    }
+    return out;
+  }, [buffers]);
+
   useEffect(() => {
     if (bottomPanelInitedRef.current) {
       return;
     }
     bottomPanelInitedRef.current = true;
-    setBottomH(158);
+    setBottomH(145);
   }, []);
 
   useEffect(() => {
@@ -1079,10 +1099,24 @@ export function WebIdeWorkbench({
       {
         id: 'palette-search',
         label: 'View: Show Search',
+        shortcut: accel('Ctrl+Shift+F'),
         section: 'View',
         onSelect: () => {
           setActivityView('search');
           setSidebarOpen(true);
+        },
+      },
+      {
+        id: 'palette-repo',
+        label: 'Workspace: Link repository',
+        section: 'Workspace',
+        detail: 'Remote URL + notes → agent context',
+        onSelect: () => {
+          setActivityView('explorer');
+          setSidebarOpen(true);
+          queueMicrotask(() => {
+            document.querySelector<HTMLElement>('[data-repo-url-input]')?.focus();
+          });
         },
       },
       {
@@ -1114,8 +1148,17 @@ export function WebIdeWorkbench({
         onSelect: () => onClearAgentOutput(),
       });
     }
+    if (onBeginNewAgentSession) {
+      items.push({
+        id: 'palette-new-agent',
+        label: 'Agent: New session',
+        section: 'Agent',
+        detail: 'Clear mission, stream, and errors',
+        onSelect: () => onBeginNewAgentSession(),
+      });
+    }
     return items;
-  }, [focusComposer, onClearAgentOutput, openFile, revealAgentStreamTab, router]);
+  }, [focusComposer, onBeginNewAgentSession, onClearAgentOutput, openFile, revealAgentStreamTab, router]);
 
   const onTabKeyDown = useCallback(
     (e: ReactKeyboardEvent<HTMLDivElement>) => {
@@ -1296,6 +1339,36 @@ export function WebIdeWorkbench({
                       {WEB_DEMO_PROJECT_NAME}
                     </span>
                   </div>
+                  <div className="wb-repo-block">
+                    <div className="wb-repo-block-title">Repository</div>
+                    <input
+                      type="url"
+                      className="wb-repo-input"
+                      data-repo-url-input
+                      placeholder="https://github.com/org/repo.git"
+                      value={repoMeta.repoUrl}
+                      onChange={(e) => onRepoMetaChange({ ...repoMeta, repoUrl: e.target.value })}
+                      spellCheck={false}
+                      autoComplete="off"
+                    />
+                    <input
+                      type="text"
+                      className="wb-repo-input"
+                      placeholder="Label (optional)"
+                      value={repoMeta.repoLabel}
+                      onChange={(e) => onRepoMetaChange({ ...repoMeta, repoLabel: e.target.value })}
+                      spellCheck={false}
+                      autoComplete="off"
+                    />
+                    <textarea
+                      className="wb-repo-notes"
+                      placeholder="Context for the agent (paths, tickets, constraints)…"
+                      rows={2}
+                      value={repoMeta.repoNotes}
+                      onChange={(e) => onRepoMetaChange({ ...repoMeta, repoNotes: e.target.value })}
+                      spellCheck={false}
+                    />
+                  </div>
                   <div className="wb-open-editors">
                     <div className="wb-open-editors-label">Open editors</div>
                     <ul className="wb-open-editors-list">
@@ -1399,7 +1472,7 @@ export function WebIdeWorkbench({
                       </button>
                     </div>
                   </div>
-                  <WebSearchPanel onOpenFile={openFile} />
+                  <WebSearchPanel files={searchFileIndex} onOpenFile={openFile} />
                 </div>
               ) : (
                 <div className="wb-scm-panel">

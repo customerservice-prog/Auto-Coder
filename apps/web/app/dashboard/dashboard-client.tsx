@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useUser } from '@clerk/nextjs';
 import { AccountMenu } from '@/components/clerk-ui';
@@ -60,7 +60,12 @@ function PostCheckoutClerkRefresh({ show }: { show: boolean }) {
 export function DashboardClient() {
   const [checkoutSuccessBanner, setCheckoutSuccessBanner] = useState(false);
   const [mission, setMission] = useState('');
-  const [projectContext] = useState('');
+  const [repoMeta, setRepoMeta] = useState<WebWorkspaceRepoMeta>({
+    repoUrl: '',
+    repoLabel: '',
+    repoNotes: '',
+  });
+  const repoPersistInit = useRef(false);
   const [model, setModel] = useState<ModelId>('claude');
   const [output, setOutput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -111,10 +116,15 @@ export function DashboardClient() {
       });
     };
     try {
+      const projectContext = buildAgentProjectContext(repoMeta);
       const res = await fetch('/api/agent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mission, projectContext, model }),
+        body: JSON.stringify({
+          mission,
+          model,
+          ...(projectContext != null ? { projectContext } : {}),
+        }),
       });
 
       if (!res.ok) {
@@ -162,6 +172,14 @@ export function DashboardClient() {
     <div className="composer-shell" ref={composerShellRef}>
       <div className="composer-top">
         <span className="composer-title">web-workspace · local</span>
+        <button
+          type="button"
+          className="composer-new-agent"
+          title="New agent session — clear input and stream"
+          onClick={beginNewAgentSession}
+        >
+          New
+        </button>
         <select
           className="model-chip"
           value={model}
@@ -175,6 +193,11 @@ export function DashboardClient() {
       </div>
       <div className="composer-stream" ref={composerStreamRef}>
         {error ? <div className="composer-stream-err">{error}</div> : null}
+        {!error && !loading && output.trim() === '' ? (
+          <div className="composer-stream-ghost" aria-hidden>
+            Stream · agent edits and tool output (⌘↵)
+          </div>
+        ) : null}
         <pre className="composer-stream-body">{output || '\u00a0'}</pre>
       </div>
       <div className="composer-inputbar">
@@ -253,6 +276,9 @@ export function DashboardClient() {
         agentOutput={output}
         agentError={error}
         loading={loading}
+        repoMeta={repoMeta}
+        onRepoMetaChange={setRepoMeta}
+        onBeginNewAgentSession={beginNewAgentSession}
         onClearAgentOutput={() => {
           setOutput('');
           setError(null);

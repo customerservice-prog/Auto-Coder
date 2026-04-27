@@ -1,64 +1,36 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { DEMO_BUFFERS } from '@/components/web-ide/demo-workspace';
+import { scanWorkspaceFiles, type SearchHit } from '@/components/web-ide/web-search-scan';
 
-export interface SearchHit {
-  path: string;
-  name: string;
-  line: number;
-  preview: string;
-}
-
-function scanWorkspace(q: string, caseSensitive: boolean, wholeWord: boolean): SearchHit[] {
-  const raw = q.trim();
-  if (!raw) return [];
-  const hits: SearchHit[] = [];
-  const needle = caseSensitive ? raw : raw.toLowerCase();
-
-  for (const [path, buf] of Object.entries(DEMO_BUFFERS)) {
-    const lines = buf.content.split(/\r?\n/);
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i] ?? '';
-      const hay = caseSensitive ? line : line.toLowerCase();
-      let ok = hay.includes(needle);
-      if (ok && wholeWord) {
-        try {
-          const re = new RegExp(
-            `\\b${raw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`,
-            caseSensitive ? '' : 'i',
-          );
-          ok = re.test(line);
-        } catch {
-          ok = false;
-        }
-      }
-      if (ok) {
-        hits.push({
-          path,
-          name: buf.name,
-          line: i + 1,
-          preview: line.trim().slice(0, 200),
-        });
-      }
-    }
-  }
-  return hits.slice(0, 200);
-}
+export type { SearchHit };
 
 interface WebSearchPanelProps {
+  /** Paths → display name + current buffer text (demo + open editors). */
+  files: Record<string, { name: string; content: string }>;
   onOpenFile: (path: string, name: string) => void;
 }
 
-export function WebSearchPanel({ onOpenFile }: WebSearchPanelProps) {
+function splitIncludePatterns(raw: string): string[] {
+  return raw
+    .split(/[,;\n]/g)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+export function WebSearchPanel({ files, onOpenFile }: WebSearchPanelProps) {
   const [query, setQuery] = useState('');
   const [replace, setReplace] = useState('');
+  const [includePaths, setIncludePaths] = useState('');
   const [caseSensitive, setCaseSensitive] = useState(false);
   const [wholeWord, setWholeWord] = useState(false);
+  const pathFragments = useMemo(() => splitIncludePatterns(includePaths), [includePaths]);
   const results = useMemo(
-    () => scanWorkspace(query, caseSensitive, wholeWord),
-    [query, caseSensitive, wholeWord],
+    () => scanWorkspaceFiles(files, query, caseSensitive, wholeWord, pathFragments),
+    [files, query, caseSensitive, wholeWord, pathFragments],
   );
+
+  const fileCount = Object.keys(files).length;
 
   return (
     <div className="wb-search-workspace">
@@ -79,6 +51,14 @@ export function WebSearchPanel({ onOpenFile }: WebSearchPanelProps) {
           spellCheck={false}
           autoComplete="off"
         />
+        <input
+          className="wb-search-input wb-search-files-include"
+          placeholder="Files to include (e.g. tsx, dashboard — comma-separated)"
+          value={includePaths}
+          onChange={(e) => setIncludePaths(e.target.value)}
+          spellCheck={false}
+          autoComplete="off"
+        />
         <div className="wb-search-toggles" role="group" aria-label="Search options">
           <label className="wb-search-toggle">
             <input type="checkbox" checked={caseSensitive} onChange={(e) => setCaseSensitive(e.target.checked)} />
@@ -90,7 +70,9 @@ export function WebSearchPanel({ onOpenFile }: WebSearchPanelProps) {
           </label>
         </div>
       </div>
-      <p className="wb-search-scope">Demo files only.</p>
+      <p className="wb-search-scope">
+        {fileCount} file{fileCount === 1 ? '' : 's'} (demo tree + open buffers, including unsaved edits).
+      </p>
       <div className="wb-search-results" role="list">
         {query.trim() === '' ? (
           <p className="wb-search-empty">Enter text to search.</p>
